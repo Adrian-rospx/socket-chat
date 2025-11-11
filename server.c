@@ -66,5 +66,8 @@ int main() {
     const char* message = "The server has recieved your message! Hello!";
     send(client_fd, message, strlen(message), 0);
 
+    close(client_fd);
+    close(socket_fd);
+
     return 0;
 }
