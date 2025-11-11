@@ -10,18 +10,25 @@ typedef struct sockaddr_in sockaddr_in;
 typedef struct sockaddr sockaddr; 
 
 const short server_port = 8080;
+const char* ip_address = "127.0.0.1";
 
 int main () {
     // socket init
     int sock_client_fd = socket(AF_INET, SOCK_STREAM, 0);
     
+    if (sock_client_fd == -1) {
+        perror("Socket failed");
+        return 1;
+    }
+    fprintf(stdout, "Client socket file descriptor: %d\n", sock_client_fd);
+
     // server address
     sockaddr_in server_addr = {};
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(server_port);
 
     // convert ip string to binary
-    inet_pton(AF_INET, "127.0.0.1", &server_addr.sin_addr);
+    inet_pton(AF_INET, ip_address, &server_addr.sin_addr);
 
     // connect to server
     if (connect(sock_client_fd, (sockaddr*)&server_addr, sizeof(server_addr))) {
@@ -35,7 +42,7 @@ int main () {
 
     // recieve response
     char buffer[1024] = {0};
-    int bytes = read(sock_client_fd, buffer, sizeof(buffer));
+    int bytes = recv(sock_client_fd, buffer, sizeof(buffer), 0);
     fprintf(stdout, "The server sent back: %s\n", buffer);    
 
     close(sock_client_fd);
