@@ -13,17 +13,16 @@ typedef struct sockaddr sockaddr;
 const short port = 8080;
 const int max_connections = 5;
 
-int run_server() {
-    // initiate socket
+int init_socket() {
     int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
-
     if (socket_fd == -1) {
         perror("Socket failed!");
-        return 1;
+        return -1;
     }
-    fprintf(stdout, "Socket file descriptor: %d\n", socket_fd);
+    return socket_fd;
+}
 
-    // server address
+sockaddr_in server_address_setup() {
     sockaddr_in address = {};
     address.sin_family = AF_INET;
     // listen to all interfaces
@@ -31,17 +30,28 @@ int run_server() {
     // listen to port in network byte order
     address.sin_port = htons(port); 
 
-    // bind socket to address and port
-    if (bind(socket_fd, (sockaddr*)&address, sizeof(address)) < 0) {
+    return address;
+}
+
+int bind_socket(int socket_fd, sockaddr_in* address_p) {
+    if (bind(socket_fd, (sockaddr*)address_p, sizeof(*address_p)) < 0) {
         perror("Bind failed!");
-        return 1;
+        return -1;
     }
-    fputs("Bind successful!\n", stdout);
+    return 0;
+}
+
+int run_server() {
+    int socket_fd = init_socket();
+    if (socket_fd == -1) return -1;
+    
+    sockaddr_in address = server_address_setup();
+    if (bind_socket(socket_fd, &address) == -1) return -1;
 
     // listen for incoming connections
     if (listen(socket_fd, max_connections) < 0) {
         perror("Listen failed!");
-        return 1;
+        return -1;
     }
     fprintf(stdout, "Listening on port %hd\n", port);
 
@@ -53,17 +63,17 @@ int run_server() {
     int client_fd = accept(socket_fd, (sockaddr*)&client_addr, &client_len);
     if (client_fd == -1) {
         perror("Accept failed!");
-        return 1;
+        return -1;
     }
     fputs("Client connected!\n", stdout);
 
     // write to screen
     char buffer[1024] = {0};
     int bytes = read(client_fd, buffer, sizeof(buffer));
-    fprintf(stdout, "Recieved: %s\n", buffer);
+    fprintf(stdout, "Recieved:\n%s\n", buffer);
 
     // send message
-    const char* message = "The server has recieved your message! Hello!";
+    const char* message = "Message recieved\n";
     send(client_fd, message, strlen(message), 0);
 
     close(client_fd);

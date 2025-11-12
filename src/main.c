@@ -5,28 +5,33 @@
 #include "include/client.h"
 
 int input_error_instruction() {
-    fputs("Invalid input!\n", stdout);
+    fputs("Invalid input!\n", stderr);
     fputs("Usage: enter -c for client or -s for server\n", 
-        stdout
+        stderr
     );
     return 1;
 }
 
 int main(int argc, char** argv) {
-    if (argc < 2) {
+    if (argc < 2)
         return input_error_instruction();
-    }
 
-    if (strcmp(argv[1], "-s") == 0)
-        fputs("Server mode!\n", stdout);
-    else if (strcmp(argv[1], "-c") == 0)
-        fputs("Client mode!\n", stdout);
-    else {
+    if (strcmp(argv[1], "-s") == 0) {
+        if (run_server() == -1) {
+            fputs("Server error", stderr);
+            return 1;
+        }
+    }
+    else if (strcmp(argv[1], "-c") == 0) {
+        if (run_client() == -1) {
+            fputs("Client error", stderr);
+            return 1;
+        }
+    }
+    else
         return input_error_instruction();
-    }
-    // run_server();
 
-    fputs("Process ended.\n", stdout);
+    fputs("Process ended successfully.\n", stdout);
     
     return 0;
 }
