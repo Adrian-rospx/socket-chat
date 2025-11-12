@@ -18,13 +18,13 @@ int main(int argc, char** argv) {
 
     if (strcmp(argv[1], "-s") == 0) {
         if (run_server() == -1) {
-            fputs("Server error", stderr);
+            fputs("Server error\n", stderr);
             return 1;
         }
     }
     else if (strcmp(argv[1], "-c") == 0) {
         if (run_client() == -1) {
-            fputs("Client error", stderr);
+            fputs("Client error\n", stderr);
             return 1;
         }
     }
