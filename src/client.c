@@ -12,7 +12,7 @@ typedef struct sockaddr sockaddr;
 const short server_port = 8080;
 const char* ip_address = "127.0.0.1";
 
-int main () {
+int run_client () {
     // socket init
     int sock_client_fd = socket(AF_INET, SOCK_STREAM, 0);
     

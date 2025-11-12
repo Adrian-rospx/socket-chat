@@ -13,7 +13,7 @@ typedef struct sockaddr sockaddr;
 const short port = 8080;
 const int max_connections = 5;
 
-int main() {
+int run_server() {
     // initiate socket
     int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
 
