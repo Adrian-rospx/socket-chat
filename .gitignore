@@ -1,2 +1,6 @@
-# executables
+# build
 *.out
+build
+
+# cache
+.cache

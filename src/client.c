@@ -9,7 +9,7 @@
 typedef struct sockaddr_in sockaddr_in;
 typedef struct sockaddr sockaddr; 
 
-const short server_port = 8080;
+const short server_port = 8765;
 const char* ip_address = "127.0.0.1";
 
 sockaddr_in server_address_setup() {
