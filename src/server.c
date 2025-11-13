@@ -11,32 +11,7 @@
 
 typedef struct pollfd pollfd;
 
-// int handle_connection(const int socket_fd) {
-//     // client address
-//     sockaddr_in client_addr = {};
-//     socklen_t client_len = sizeof(client_addr);
-
-//     // accept connection
-//     int client_fd = accept(socket_fd, (sockaddr*)&client_addr, &client_len);
-//     if (client_fd == -1) {
-//         perror("Accept failed!");
-//         close(client_fd);
-//         return -1;
-//     }
-//     fputs("Client connected!\n", stdout);
-
-//     // write to screen
-//     char buffer[1024] = {0};
-//     int bytes = read(client_fd, buffer, sizeof(buffer));
-//     fprintf(stdout, "Recieved:\n%s\n", buffer);
-
-//     // send message
-//     const char* message = "Message recieved";
-//     send(client_fd, message, strlen(message), 0);
-//     close(client_fd);
-
-//     return 0;
-// }
+const int buffer_size = 256;
 
 int run_server() {
     // initialisation
@@ -53,7 +28,7 @@ int run_server() {
     fds[0] = server_poll;
     int poll_count = 1;
 
-    char buffer[256];
+    char buffer[buffer_size];
 
     while (1) {
         // poll indefinetely
@@ -65,6 +40,7 @@ int run_server() {
 
         // loop through sockets
         for (int i = 0; i < 10; i++) {
+            // skip empty sockets
             if (fds[i].fd == 0) continue;
             // if it's the listening socket create a new connection
             else if (fds[i].fd == socket_fd && (fds[i].revents & POLLIN)) {
@@ -81,19 +57,38 @@ int run_server() {
                 client_poll.fd = client_fd;
                 client_poll.events = POLLIN;
 
+                // !weird implementation
                 fds[poll_count] = client_poll;
                 poll_count++;
 
                 fprintf(stdout, "New client connected with fd = %d\n", client_fd);
+            
+            }
+            // for client sockets with data to read:
+            else if (fds[i].revents & POLLIN) {
+                // read data
+                int bytes = recv(fds[i].fd, buffer, buffer_size, 0);
+                if (bytes <= 0) {
+                    // handle disconnection or error
+                    fprintf(stdout, "Client disconnected: fd = %d\n", fds[i].fd);
+                    close(fds[i].fd);
+                    fds[i].fd = 0;
+                    
+                    // !weird implementation
+                    poll_count--;
+                } else {
+                    buffer[bytes] = '\0';
+                    fprintf(stdout, "Recieved from fd = %d:\n%s\n", 
+                        fds[i].fd, buffer
+                    );
+
+                    // echo back
+                    send(fds[i].fd, buffer, bytes, 0);
+                }
             }
         }
 
     }
-
-    // client connection config
-    // while (1) {
-    //     if (handle_connection(socket_fd) == -1) return -1;
-    // }
 
     close(socket_fd);
 
