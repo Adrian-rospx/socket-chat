@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "include/server.h"
-#include "include/client.h"
+#include "server.h"
+#include "client.h"
 
 int input_error_instruction() {
     fputs("Invalid input!\n", stderr);
