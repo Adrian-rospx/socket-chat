@@ -8,7 +8,6 @@ target_sources(SocketChat
     PRIVATE 
         src/main.c
         src/server.c
-        src/server_start.c
         src/client.c
 )
 target_include_directories(SocketChat PRIVATE include)
