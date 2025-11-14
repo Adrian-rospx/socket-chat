@@ -12,18 +12,7 @@ typedef struct sockaddr sockaddr;
 const short server_port = 8765;
 const char* ip_address = "127.0.0.1";
 
-sockaddr_in server_address_setup() {
-    sockaddr_in server_addr = {};
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(server_port);
-
-    // convert ip string to binary
-    inet_pton(AF_INET, ip_address, &server_addr.sin_addr);
-    
-    return server_addr;
-}
-
-int run_client () {
+int run_client (void) {
     // socket init
     int sock_client_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (sock_client_fd == -1) {
@@ -31,8 +20,13 @@ int run_client () {
         return -1;
     }
 
-    sockaddr_in server_addr = server_address_setup();
-
+    // set server address
+    sockaddr_in server_addr = {};
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(server_port);
+    // convert ip string to binary
+    inet_pton(AF_INET, ip_address, &server_addr.sin_addr);
+    
     // connect to server
     if (connect(sock_client_fd, (sockaddr*)&server_addr, sizeof(server_addr))) {
         perror("Connect failed!");

@@ -33,7 +33,7 @@ int event_loop(int server_fd, pollfd fds[], int* p_poll_count, char* buffer) {
         if (fds[i].fd == 0) return -1;
         // if it's the listening socket create a new connection
         else if (fds[i].fd == server_fd && (fds[i].revents & POLLIN)) {
-            sockaddr_in client_addr = {};
+            sockaddr_in client_addr = {0};
             socklen_t client_len = sizeof(client_addr);
 
             int client_fd = accept(server_fd, (sockaddr*)&client_addr, &client_len);
@@ -42,7 +42,7 @@ int event_loop(int server_fd, pollfd fds[], int* p_poll_count, char* buffer) {
                 continue;
             }
 
-            pollfd client_poll = {};
+            pollfd client_poll = {0};
             client_poll.fd = client_fd;
             client_poll.events = POLLIN;
 
@@ -80,7 +80,7 @@ int event_loop(int server_fd, pollfd fds[], int* p_poll_count, char* buffer) {
     return 0;
 }
 
-int run_server() {
+int run_server(void) {
     // create an ipv4 socket
     int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (socket_fd == -1) {
@@ -101,7 +101,7 @@ int run_server() {
     }
 
     // socket address setup
-    sockaddr_in address = {};
+    sockaddr_in address = {0};
     address.sin_family = AF_INET;
     // listen to all interfaces
     address.sin_addr.s_addr = INADDR_ANY; 
@@ -125,7 +125,7 @@ int run_server() {
 
     // setup polling
     pollfd fds[10] = {0};
-    pollfd server_poll = {};
+    pollfd server_poll = {0};
     server_poll.fd = socket_fd;
     server_poll.events = POLLIN;
     fds[0] = server_poll;
@@ -135,7 +135,9 @@ int run_server() {
 
     // event loop implementation
     while (1) {
-        int status = event_loop(socket_fd, fds, &poll_count, buffer);
+        const int status = event_loop(socket_fd, fds, &poll_count, buffer);
+        if (status == -1) 
+            continue;
     }
 
     close(socket_fd);

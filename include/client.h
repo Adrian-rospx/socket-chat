@@ -1,6 +1,6 @@
 #ifndef CLIENT_H
 #define CLIENT_H
 
-int run_client();
+int run_client(void);
 
 #endif

@@ -1,6 +1,6 @@
 #ifndef SERVER_H
 #define SERVER_H
 
-int run_server();
+int run_server(void);
 
 #endif

@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.23)
 
 project(SocketChat LANGUAGES C)
 
+set(CMAKE_C_STANDARD 17)
+
 add_executable(SocketChat)
 
 target_sources(SocketChat
@@ -10,11 +12,12 @@ target_sources(SocketChat
         src/server.c
         src/client.c
 )
+
 target_include_directories(SocketChat PRIVATE include)
 
-target_compile_features(SocketChat PUBLIC c_std_17)
 target_compile_options(SocketChat 
     PRIVATE 
         -Wall 
-        -Wextra 
+        -Wextra
+        -pedantic
 )
