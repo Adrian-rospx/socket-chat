@@ -11,13 +11,6 @@ typedef struct app_flags {
     char ip_address[256];
 } app_flags;
 
-void invalid_input(void) {
-    fputs("Invalid input!\n", stderr);
-    fputs("Usage: enter -c for client or -s for server\n", 
-        stderr
-    );
-}
-
 int main(int argc, char** argv) {
     app_flags flags = {0};
 
@@ -25,13 +18,13 @@ int main(int argc, char** argv) {
     strcpy(flags.ip_address, "127.0.0.1");
     flags.port = 8765;
 
-
+    // handle flags
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--server") == 0 || 
             strcmp(argv[i], "-s") == 0) {
             // server mode
             if (flags.app_mode != 0) {
-                invalid_input();
+                fputs("Error: app mode can only be --server or --client", stderr);
                 return -1;
             }
             flags.app_mode = 's';
@@ -39,7 +32,7 @@ int main(int argc, char** argv) {
             strcmp(argv[i], "-c") == 0) {
             // client mode
             if (flags.app_mode != 0) {
-                invalid_input();
+                fputs("Error: App mode can only be --server or --client", stderr);
                 return -1;
             }
             flags.app_mode = 'c';
@@ -47,7 +40,7 @@ int main(int argc, char** argv) {
             strcmp(argv[i], "-p") == 0) {
             // set port number
             if (i + 1 >= argc) {
-                invalid_input();
+                fputs("Error: port value missing", stderr);
                 return -1;
             }
 
@@ -55,11 +48,11 @@ int main(int argc, char** argv) {
             long port_value = strtol(argv[i+1], &endptr, 10);
         
             if (*endptr != '\0') {
-                invalid_input();
+                fputs("Error: invalid port value\n", stderr);
                 return -1;
             }
             if (port_value < 0 || port_value > 65535) {
-                invalid_input();
+                fputs("Error: port value out of range\n", stderr);
                 return -1;
             }
 
@@ -69,21 +62,29 @@ int main(int argc, char** argv) {
             strcmp(argv[i], "-a") == 0) {
             // set server ip address
             if (i + 1 >= argc) {
-                invalid_input();
+                fputs("Error: --address value missing\n", stderr);
                 return -1;
             }
 
             snprintf(flags.ip_address, sizeof(flags.ip_address), "%s", argv[i + 1]);
             i++;
         } else {
-            invalid_input();
+            fprintf(stderr, "Error: Invalid flag at index %d\n", i);
             return -1;
         }
     }
 
-    fprintf(stdout, 
-        "Current format:\napp mode: %c\nport: %hd\nIP address: %s\n", 
-        flags.app_mode, flags.port, flags.ip_address);
+    switch (flags.app_mode) {
+        case 's':
+            run_server(flags.port);
+            break;
+        case 'c':
+            run_client(flags.port, flags.ip_address);
+            break;
+        default:
+            fputs("Error: Must choose either --server or --client", stderr);
+            return -1;
+    }
 
     fputs("Process ended successfully.\n", stdout);
     

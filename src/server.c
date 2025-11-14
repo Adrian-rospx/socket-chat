@@ -15,7 +15,6 @@ typedef struct sockaddr_in sockaddr_in;
 typedef struct sockaddr sockaddr;
 typedef struct pollfd pollfd;
 
-const int port = 8765;
 const int max_queued_connections = 10;
 const int buffer_size = 256;
 
@@ -80,7 +79,7 @@ int event_loop(int server_fd, pollfd fds[], int* p_poll_count, char* buffer) {
     return 0;
 }
 
-int run_server(void) {
+int run_server(const unsigned short port) {
     // create an ipv4 socket
     int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (socket_fd == -1) {

@@ -9,10 +9,7 @@
 typedef struct sockaddr_in sockaddr_in;
 typedef struct sockaddr sockaddr; 
 
-const short server_port = 8765;
-const char* ip_address = "127.0.0.1";
-
-int run_client (void) {
+int run_client (const unsigned short server_port, const char* ip_address) {
     // socket init
     int sock_client_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (sock_client_fd == -1) {
@@ -21,7 +18,7 @@ int run_client (void) {
     }
 
     // set server address
-    sockaddr_in server_addr = {};
+    sockaddr_in server_addr = {0};
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(server_port);
     // convert ip string to binary
