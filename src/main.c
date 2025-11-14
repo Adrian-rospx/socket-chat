@@ -11,7 +11,10 @@ typedef struct app_flags {
     char ip_address[128];
 } app_flags;
 
-int handle_flags(const int argc, char** argv, app_flags* flags) {
+int handle_flags(const int argc, char** argv, 
+    app_flags* flags, 
+    const unsigned short default_port,
+    const char* default_address) {
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--server") == 0 || 
             strcmp(argv[i], "-s") == 0) {
@@ -20,7 +23,12 @@ int handle_flags(const int argc, char** argv, app_flags* flags) {
                 fputs("Error: app mode can only be --server or --client\n", stderr);
                 return -1;
             }
+
             flags->app_mode = 's';
+
+            // set defaults
+            flags->port = default_port;
+            strcpy(flags->ip_address, default_address);
         } else if (strcmp(argv[i], "--client") == 0 || 
             strcmp(argv[i], "-c") == 0) {
             // client mode
@@ -28,7 +36,12 @@ int handle_flags(const int argc, char** argv, app_flags* flags) {
                 fputs("Error: App mode can only be --server or --client\n", stderr);
                 return -1;
             }
+
             flags->app_mode = 'c';
+            
+            // set defaults
+            flags->port = default_port;
+            strcpy(flags->ip_address, default_address);
         } else if (strcmp(argv[i], "--port") == 0 || 
             strcmp(argv[i], "-p") == 0) {
             // set port number
@@ -78,7 +91,7 @@ int handle_input_options(app_flags* flags,
 
     // input app_mode
     while (flags->app_mode == '\0') {
-        fputs("Run (server, s | client, s): ", 
+        fputs("Run (server, s or client, c): ", 
             stdout);
 
         if (fgets(buffer, sizeof(buffer), stdin) == NULL) {
@@ -87,8 +100,8 @@ int handle_input_options(app_flags* flags,
         }
 
         // clean input buffer
-        int c;
-        while ((c = getchar()) != '\n' && c != EOF);
+        // int c;
+        // while ((c = getchar()) != '\n' && c != EOF) {};
 
         // strip trailing newline
         buffer[strcspn(buffer, "\n")] = '\0';
@@ -109,7 +122,7 @@ int handle_input_options(app_flags* flags,
 
     // input port
     while (flags->port == 0) {
-        fputs("Enter port number (0 - 65535): ", 
+        fputs("Enter port number [0 - 65535] default 8765: ", 
             stdout);
             
         if (fgets(buffer, sizeof(buffer), stdin) == NULL) {
@@ -118,18 +131,19 @@ int handle_input_options(app_flags* flags,
         }
 
         // clean input buffer
-        int c;
-        while ((c = getchar()) != '\n' && c != EOF);
+        // int c;
+        // while ((c = getchar()) != '\n' && c != EOF) {};
 
         // default value
-        if (*buffer == '\0') {
+        if (*buffer == '\n') {
             flags->port = default_port;
+            break;
         }
 
         char* endptr;
-        long port_value = strtol(buffer, &endptr, 10);        
+        long port_value = strtol(buffer, &endptr, 10);
 
-        if (*endptr != '\0') {
+        if (*endptr == '\0') {
             fputs("Error: invalid port value\n", stderr);
             continue;
         }
@@ -142,7 +156,7 @@ int handle_input_options(app_flags* flags,
     }
     // input ip address
     while (*flags->ip_address == '\0' && flags->app_mode == 'c') {
-        fputs("Enter server IP address (x.x.x.x): ", stdout);
+        fputs("Enter server IP address [x.x.x.x] default 127.0.0.1: ", stdout);
 
         if (fgets(buffer, sizeof(buffer), stdin) == NULL) {
             fputs("Error: failed to read input\n", stderr);
@@ -150,8 +164,8 @@ int handle_input_options(app_flags* flags,
         }
 
         // clean input buffer
-        int c;
-        while ((c = getchar()) != '\n' && c != EOF);
+        // int c;
+        // while ((c = getchar()) != '\n' && c != EOF) {};
 
         // strip trailing newline
         buffer[strcspn(buffer, "\n")] = '\0';
@@ -174,10 +188,12 @@ int main(int argc, char** argv) {
     const char default_address[32] = "127.0.0.1";
 
     // handle flags
-    return handle_flags(argc, argv, &flags);
+    if (handle_flags(argc, argv, &flags, default_port, default_address) == -1)
+        return -1;
     
     // call user input
-    return handle_input_options(&flags, default_port, default_address);
+    if (handle_input_options(&flags, default_port, default_address) == -1)
+        return -1;
 
     // execute
     switch (flags.app_mode) {
