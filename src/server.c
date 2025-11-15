@@ -10,7 +10,7 @@
 
 typedef struct pollfd pollfd;
 
-int event_loop(int server_fd, pollfd fds[], int* p_poll_count, char* buffer) {
+int server_event_loop(int server_fd, pollfd fds[], int* p_poll_count, char* buffer) {
     // poll indefinitely
     int ret = poll(fds, 10, -1);
     if (ret < 0) {
@@ -94,7 +94,7 @@ int run_server(const unsigned short port) {
 
     // event loop implementation
     while (1) {
-        const int status = event_loop(socket_fd, fds, &poll_count, buffer);
+        const int status = server_event_loop(socket_fd, fds, &poll_count, buffer);
         if (status == -1) continue;
     }
 
