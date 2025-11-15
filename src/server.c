@@ -1,4 +1,4 @@
-#include <sys/poll.h>
+#include <poll.h>
 #include <sys/socket.h>
 
 #include <string.h>
@@ -95,8 +95,7 @@ int run_server(const unsigned short port) {
     // event loop implementation
     while (1) {
         const int status = event_loop(socket_fd, fds, &poll_count, buffer);
-        if (status == -1) 
-            continue;
+        if (status == -1) continue;
     }
 
     close(socket_fd);
