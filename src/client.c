@@ -1,34 +1,22 @@
-#include <sys/socket.h>
-#include <netinet/in.h>
 #include <arpa/inet.h>
+#include <fcntl.h>
+#include <netinet/in.h>
+#include <poll.h>
+#include <sys/socket.h>
 
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 
-typedef struct sockaddr_in sockaddr_in;
-typedef struct sockaddr sockaddr; 
+#include "network.h"
 
 int run_client (const unsigned short server_port, const char* ip_address) {
-    // socket init
-    int sock_client_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sock_client_fd == -1) {
-        perror("Socket failed");
+    int sock_client_fd = create_socket();
+    if (sock_client_fd == -1)
         return -1;
-    }
 
-    // set server address
-    sockaddr_in server_addr = {0};
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(server_port);
-    // convert ip string to binary
-    inet_pton(AF_INET, ip_address, &server_addr.sin_addr);
-    
-    // connect to server
-    if (connect(sock_client_fd, (sockaddr*)&server_addr, sizeof(server_addr))) {
-        perror("Connect failed!");
+    if (connect_to_server(sock_client_fd, server_port, ip_address) == -1)
         return -1;
-    }
 
     // send message
     const char* message = "This is the message sent by the client!";

@@ -1,25 +1,17 @@
 #include <sys/poll.h>
-#include <sys/types.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 
-#include <fcntl.h>
 #include <string.h>
 #include <stdio.h>
 #include <unistd.h>
 
 #include "server.h"
+#include "network.h"
 
-typedef struct sockaddr_in sockaddr_in;
-typedef struct sockaddr sockaddr;
 typedef struct pollfd pollfd;
 
-const int max_queued_connections = 10;
-const int buffer_size = 256;
-
 int event_loop(int server_fd, pollfd fds[], int* p_poll_count, char* buffer) {
-    // poll indefinetely
+    // poll indefinitely
     int ret = poll(fds, 10, -1);
     if (ret < 0) {
         perror("Poll failed");
@@ -55,7 +47,7 @@ int event_loop(int server_fd, pollfd fds[], int* p_poll_count, char* buffer) {
         // for client sockets with data to read:
         else if (fds[i].revents & POLLIN) {
             // read data
-            int bytes = recv(fds[i].fd, buffer, buffer_size, 0);
+            int bytes = recv(fds[i].fd, buffer, sizeof(buffer), 0);
             if (bytes <= 0) {
                 // handle disconnection or error
                 fprintf(stdout, "Client disconnected: fd = %d\n", fds[i].fd);
@@ -80,47 +72,15 @@ int event_loop(int server_fd, pollfd fds[], int* p_poll_count, char* buffer) {
 }
 
 int run_server(const unsigned short port) {
-    // create an ipv4 socket
-    int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (socket_fd == -1) {
-        perror("Socket failed!");
-        close(socket_fd);
-        return -1;
-    }
+    const int max_queued_connections = 10;
+    const int buffer_size = 256;
 
-    // setup non-blocking flag
-    int flags = fcntl(socket_fd, F_GETFL, 0);
-    if (flags == -1) {
-        perror("fcntl F_GETFL");
+    int socket_fd = create_socket();
+    if (socket_fd == -1)
         return -1;
-    }
-    if (fcntl(socket_fd, F_SETFL, flags | O_NONBLOCK) == -1) {
-        perror("fcntl F_SETFL");
-        return -1;
-    }
 
-    // socket address setup
-    sockaddr_in address = {0};
-    address.sin_family = AF_INET;
-    // listen to all interfaces
-    address.sin_addr.s_addr = INADDR_ANY; 
-    // listen to port in network byte order
-    address.sin_port = htons(port); 
-
-    // bind socket
-    if (bind(socket_fd, (sockaddr*)&address, sizeof(address)) < 0) {
-        perror("Bind failed!");
-        close(socket_fd);
+    if (start_server_listener(socket_fd, port, max_queued_connections) == -1) 
         return -1;
-    }
-
-    // start listener
-    if (listen(socket_fd, max_queued_connections) < 0) {
-        perror("Listen failed!");
-        close(socket_fd);
-        return -1;
-    }
-    fprintf(stdout, "Listening on port %hd\n", port);
 
     // setup polling
     pollfd fds[10] = {0};
