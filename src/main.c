@@ -208,7 +208,7 @@ int main(int argc, char** argv) {
             return -1;
     }
 
-    fputs("Process ended successfully.\n", stdout);
+    fputs("Process ended.\n", stdout);
     
     return 0;
 }

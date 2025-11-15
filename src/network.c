@@ -1,6 +1,10 @@
 #include <arpa/inet.h>
+#include <bits/types/struct_timeval.h>
+#include <errno.h>
 #include <netinet/in.h>
 #include <fcntl.h>
+#include <string.h>
+#include <sys/select.h>
 #include <sys/socket.h>
 
 #include <stdio.h>
@@ -31,7 +35,8 @@ int create_socket(void) {
     return socket_fd;
 }
 
-int start_server_listener(int socket_fd, unsigned short port, const int max_queued_connections) {
+int start_server_listener(int socket_fd, unsigned short port, 
+    const int max_queued_connections) {
     // socket address setup
     sockaddr_in address = {0};
     address.sin_family = AF_INET;
@@ -58,7 +63,8 @@ int start_server_listener(int socket_fd, unsigned short port, const int max_queu
     return 0;
 }
 
-int connect_to_server(const int client_fd, const unsigned short server_port, const char* ip_address) {
+int connect_to_server(const int client_fd, const unsigned short server_port, 
+    const char* ip_address) {
     // set server address
     sockaddr_in server_addr = {0};
     server_addr.sin_family = AF_INET;
@@ -67,10 +73,59 @@ int connect_to_server(const int client_fd, const unsigned short server_port, con
     inet_pton(AF_INET, ip_address, &server_addr.sin_addr);
     
     // connect to server
-    if (connect(client_fd, (sockaddr*)&server_addr, sizeof(server_addr))) {
-        perror("Connect failed!");
-        return -1;
-    }
+    if (connect(client_fd, (sockaddr*)&server_addr, 
+        sizeof(server_addr)) != 0) {
+        if (errno != EINPROGRESS) {
+            perror("Connect failed!");
+            return -1;
+        }
 
+        // handle non-blocking behaviour
+        fd_set write_fds;
+        struct timeval timeout;
+
+        // setup file descriptor set
+        FD_ZERO(&write_fds);
+        FD_SET(client_fd, &write_fds);
+
+        // set timeout
+        timeout.tv_sec = 5;
+        timeout.tv_usec = 0;
+
+        int ret = select(client_fd + 1, NULL, &write_fds, NULL, &timeout);
+
+        if (ret == 0) {
+            fputs("Error: connection timeout\n", stderr);
+            close(client_fd);
+            return -1;
+        } else if (ret < 0) {
+            perror("Error during select");
+            close(client_fd);
+            return -1;
+        }
+
+        // ensure socket is in the write set
+        if (FD_ISSET(client_fd, &write_fds) == 0) {
+            fputs("Error: Socket not set\n", stderr);
+            close(client_fd);
+            return -1;
+        }
+
+        int error = 0;
+        socklen_t len = sizeof(error);
+
+        if (getsockopt(client_fd, SOL_SOCKET, SO_ERROR, &error, &len) < 0) {
+            perror("getsockopt failed");
+            close(client_fd);
+            return -1;
+        }
+
+        if (error != 0) {
+            fprintf(stderr, "Error: connection failed. %s\n", strerror(error));
+            close(client_fd);
+            return -1;
+        }
+    }
+    fputs("Connection established\n", stdout);
     return 0;
 }
