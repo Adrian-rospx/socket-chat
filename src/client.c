@@ -1,5 +1,3 @@
-#include <fcntl.h>
-#include <stdlib.h>
 #include <sys/poll.h>
 #include <sys/socket.h>
 
@@ -10,31 +8,34 @@
 #include <unistd.h>
 
 #include "network.h"
+#include "utils/poll_list.h"
 #include "utils/socket_buffer.h"
 
 typedef struct pollfd pollfd;
 
-int client_stdin_event(pollfd p_fd, socket_buffer* sock_buf) {
+// read from the console
+int client_stdin_event(socket_buffer* sock_buf) {
     char data[256];
     ssize_t bytes = read(STDIN_FILENO, data,
         sizeof(data)-1);
 
     if (bytes == 0) {
-        fputs("EOF on stdin. Exiting...", stdout);
+        fputs("EOF on stdin. Exiting...\n", stdout);
         return 3;
     } else if (bytes < 0) {
         perror("Read stdin error");
         return -1;
     }
+    fprintf(stdout, "Log: data read: %s\n", data);
 
-    socket_buffer_queue_ongoing(sock_buf, (uint8_t*)data, sizeof(data)-1);
+    socket_buffer_queue_ongoing(sock_buf, (uint8_t*)data, bytes);
 
-    if (!(p_fd.revents & POLLOUT)) {
-        fputs("Server not ready for writing, must implement buffering\n", stdout);
-        return 0;
-    }
+    return 0;
+}
 
-    ssize_t bytes_sent = send(p_fd.fd, sock_buf->outgoing_buffer,
+// send buffered message to the server
+int client_write_event(socket_buffer* sock_buf) {
+    ssize_t bytes_sent = send(sock_buf->fd, sock_buf->outgoing_buffer,
         sock_buf->outgoing_length, 0); 
 
     if (bytes_sent == -1) {
@@ -42,11 +43,15 @@ int client_stdin_event(pollfd p_fd, socket_buffer* sock_buf) {
         return -1;
     }
 
-    socket_buffer_deque_ongoing(sock_buf, bytes_sent);
+    if (socket_buffer_deque_ongoing(sock_buf, bytes_sent) == -1)
+        return -1;
+
+    fprintf(stdout, "Log: bytes written: %ld\n", bytes_sent);
 
     return 0;
 }
 
+// read from server
 int client_read_event(pollfd p_fd, char* buffer) {
     ssize_t bytes = recv(p_fd.fd, buffer, sizeof(buffer) - 1, 0);
             
@@ -59,43 +64,44 @@ int client_read_event(pollfd p_fd, char* buffer) {
     }
 
     buffer[bytes] = '\0';
-    fprintf(stdout, "From server: %s", buffer);
+    fprintf(stdout, "From server: %s\n", buffer);
     return 0;
 }
 
-int client_event_loop(pollfd** fds, char* buffer, socket_buffer* sock_buf, const int timeout_ms) {
-    int ret = poll((*fds), 2, timeout_ms);
+int client_event_loop(poll_list* p_list, char* buffer, socket_buffer* sock_buf, const int timeout_ms) {
+    int ret = poll(p_list->fds, 2, timeout_ms);
 
     if (ret == -1) {
         perror("Poll error");
         return -1;
     } else if (ret == 0) {
-        // handle timeout
-        const char* msg = "HEALTHCHECK";
-        ssize_t msg_len = strlen(msg);
+        // // handle timeout
+        // const char* msg = "HEALTHCHECK";
+        // ssize_t msg_len = strlen(msg);
 
-        ssize_t bytes = send((*fds)[1].fd, msg, msg_len, 0);
-        if (bytes == -1) {
-            if (errno != EAGAIN && errno != EWOULDBLOCK) {
-                perror("Heartbeat send error");
-                return -1;
-            }
-        }
-        return 0;
+        // ssize_t bytes = send(p_list->fds[1].fd, msg, msg_len, 0);
+        // if (bytes == -1) {
+        //     if (errno != EAGAIN && errno != EWOULDBLOCK) {
+        //         perror("Heartbeat send error");
+        //         return -1;
+        //     }
+        // }
+        // return 0;
     }
 
     // handle user input
-    if ((*fds)[0].revents & POLLIN) {
-        return client_stdin_event((*fds)[0], sock_buf);
-    }
+    if (p_list->fds[0].revents & POLLIN)
+        return client_stdin_event(sock_buf);
+
+    if ( (p_list->fds[1].revents & POLLOUT) && sock_buf->outgoing_length > 0)
+        return client_write_event(sock_buf);
 
     // handle server messages
-    if ((*fds)[1].revents & POLLIN) {
-        return client_read_event((*fds)[1], buffer);
-    }
+    if (p_list->fds[1].revents & POLLIN) 
+        return client_read_event(p_list->fds[1], buffer);
 
     // check for socket errors or disconnects
-    if ((*fds)[1].revents & (POLLERR | POLLHUP | POLLNVAL)) {
+    if (p_list->fds[1].revents & (POLLERR | POLLHUP | POLLNVAL)) {
         fputs("Error: socket error or disconnect detected. Exiting...\n", stderr);
         return 3;
     }
@@ -113,12 +119,12 @@ int run_client (const unsigned short server_port, const char* ip_address) {
         return -1;
 
     // setup polling
-    pollfd* fds = (pollfd*)malloc(sizeof(pollfd) * 2);
-    fds[0].fd = STDIN_FILENO;
-    fds[0].events = POLLIN;
-    
-    fds[1].fd = server_fd;
-    fds[1].events = POLLIN | POLLOUT;
+    poll_list p_list;
+    if (poll_list_init(&p_list) == -1)
+        return -1;
+
+    poll_list_add(&p_list, STDIN_FILENO, POLLIN);
+    poll_list_add(&p_list, server_fd, POLLIN | POLLOUT);
 
     char buffer[1024] = {0};
 
@@ -127,7 +133,7 @@ int run_client (const unsigned short server_port, const char* ip_address) {
     socket_buffer_init(&sock_buf, server_fd);
 
     while (1) {
-        const int status = client_event_loop(&fds, buffer, &sock_buf, timeout_ms);
+        const int status = client_event_loop(&p_list, buffer, &sock_buf, timeout_ms);
         if (status == 3) // exit
             break;
         else if (status == -1) // error
@@ -135,7 +141,7 @@ int run_client (const unsigned short server_port, const char* ip_address) {
     }
 
     socket_buffer_free(&sock_buf);
-    free(fds);
+    poll_list_free(&p_list);
 
     close(server_fd);
 
