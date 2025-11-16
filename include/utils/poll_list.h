@@ -5,6 +5,8 @@
 #include <sys/types.h>
 
 typedef struct pollfd pollfd;
+
+/* Dynamic array of pollfd data types */
 typedef struct poll_list {
     pollfd* fds;
     size_t size;

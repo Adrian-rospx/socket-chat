@@ -13,6 +13,46 @@
 
 typedef struct pollfd pollfd;
 
+int client_stdin_event(pollfd p_fd, char* buffer) {
+    ssize_t bytes = read(STDIN_FILENO, buffer, sizeof(buffer)-1);
+
+    if (bytes == 0) {
+        fputs("EOF on stdin. Exiting...", stdout);
+        return 3;
+    } else if (bytes < 0) {
+        perror("Read stdin error");
+        return -1;
+    }
+
+    if (!(p_fd.revents & POLLOUT)) {
+        fputs("Server not ready for writing, must implement buffering\n", stdout);
+        return 0;
+    }
+
+    if (send(p_fd.fd, buffer, strlen(buffer), 0) == -1) {
+        perror("Send error");
+        return -1;
+    }
+
+    return 0;
+}
+
+int client_read_event(pollfd p_fd, char* buffer) {
+    ssize_t bytes = recv(p_fd.fd, buffer, sizeof(buffer) - 1, 0);
+            
+    if (bytes < 0) {
+        perror("Recv error");
+        return -1;
+    } else if (bytes == 0) {
+        fputs("\nServer closed the connection. Exiting...\n", stderr);
+        return 3;
+    }
+
+    buffer[bytes] = '\0';
+    fprintf(stdout, "From server: %s", buffer);
+    return 0;
+}
+
 int client_event_loop(pollfd** fds, char* buffer, const int timeout_ms) {
     int ret = poll((*fds), 2, timeout_ms);
 
@@ -36,49 +76,18 @@ int client_event_loop(pollfd** fds, char* buffer, const int timeout_ms) {
 
     // handle user input
     if ((*fds)[0].revents & POLLIN) {
-        ssize_t bytes = read(STDIN_FILENO, buffer, sizeof(buffer)-1);
-
-        if (bytes == 0) {
-            fputs("EOF on stdin. Exiting...", stdout);
-            return 3;
-        } else if (bytes < 0) {
-            perror("Read stdin error");
-            return -1;
-        }
-
-        if (!((*fds)[1].revents & POLLOUT)) {
-            fputs("Server not ready for writing, must implement buffering\n", stdout);
-            return 0;
-        }
-
-        if (send((*fds)[1].fd, buffer, strlen(buffer), 0) == -1) {
-            perror("Send error");
-            return -1;
-        }
-        return 0;
+        return client_stdin_event((*fds)[0], buffer);
     }
 
     // handle server messages
     if ((*fds)[1].revents & POLLIN) {
-        ssize_t bytes = recv((*fds)[1].fd, buffer, sizeof(buffer) - 1, 0);
-            
-        if (bytes < 0) {
-            perror("Recv error");
-            return -1;
-        } else if (bytes == 0) {
-            fputs("\nServer closed the connection. Exiting...\n", stderr);
-            return -1;
-        }
-
-        buffer[bytes] = '\0';
-        fprintf(stdout, "From server: %s", buffer);
-        return 0;
+        return client_read_event((*fds)[1], buffer);
     }
 
     // check for socket errors or disconnects
     if ((*fds)[1].revents & (POLLERR | POLLHUP | POLLNVAL)) {
         fputs("Error: socket error or disconnect detected. Exiting...\n", stderr);
-        return -1;
+        return 3;
     }
     return 0;
 }

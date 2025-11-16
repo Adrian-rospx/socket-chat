@@ -12,7 +12,7 @@ target_sources(SocketChat
         src/server.c
         src/client.c
         src/network.c
-        src/poll_list.c
+        src/utils/poll_list.c
 )
 
 target_include_directories(SocketChat PRIVATE include)
@@ -22,4 +22,8 @@ target_compile_options(SocketChat
         -Wall 
         -Wextra
         -pedantic
+)
+add_compile_options(
+    -ffile-prefix-map=${CMAKE_SOURCE_DIR}=.
+    -ffile-prefix-map=${CMAKE_BINARY_DIR}=.
 )
