@@ -5,14 +5,16 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#include "server.h"
 #include "network.h"
+#include "poll_list.h"
 
-typedef struct pollfd pollfd;
+#include "server.h"
+
 
 int server_event_loop(int server_fd, pollfd fds[], int* p_poll_count, char* buffer) {
     // poll indefinitely
     int ret = poll(fds, 10, -1);
+
     if (ret < 0) {
         perror("Poll failed");
         return -1;
@@ -88,6 +90,7 @@ int run_server(const unsigned short port) {
     server_poll.fd = socket_fd;
     server_poll.events = POLLIN;
     fds[0] = server_poll;
+
     int poll_count = 1;
 
     char buffer[buffer_size];
