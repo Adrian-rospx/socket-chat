@@ -12,6 +12,7 @@ target_sources(SocketChat
         src/server.c
         src/client.c
         src/network.c
+        src/poll_list.c
 )
 
 target_include_directories(SocketChat PRIVATE include)

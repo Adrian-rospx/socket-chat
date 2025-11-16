@@ -1,5 +1,7 @@
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include "poll_list.h"
 
@@ -44,8 +46,8 @@ int poll_list_add(poll_list* plist, const int fd, const short events) {
 int poll_list_remove(poll_list* plist, const int fd) {
     // find index of fd
     int index = -1;
-    for (int i = 0; i < plist->size; i++) {
-        if (plist->fds->fd == fd) {
+    for (size_t i = 0; i < plist->size; i++) {
+        if (plist->fds[i].fd == fd) {
             index = i;
             break;
         }
@@ -57,7 +59,7 @@ int poll_list_remove(poll_list* plist, const int fd) {
     }
     
     // move all next fds
-    for (int i = index; i+1 < plist->size; i++) {
+    for (size_t i = index; i+1 < plist->size; i++) {
         const pollfd temp = plist->fds[i];
         plist->fds[i] = plist->fds[i + 1];
         plist->fds[i + 1] = temp;
@@ -77,6 +79,7 @@ int poll_list_remove(poll_list* plist, const int fd) {
         plist->capacity -= 4;
     }
 
+    close(fd);
     plist->size--;
 
     return 0;

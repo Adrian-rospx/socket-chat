@@ -1,4 +1,3 @@
-#include <poll.h>
 #include <sys/socket.h>
 
 #include <string.h>
@@ -10,10 +9,9 @@
 
 #include "server.h"
 
-
-int server_event_loop(int server_fd, pollfd fds[], int* p_poll_count, char* buffer) {
+int server_event_loop(int server_fd, poll_list* p_list, char* buffer) {
     // poll indefinitely
-    int ret = poll(fds, 10, -1);
+    int ret = poll(p_list->fds, p_list->size, -1);
 
     if (ret < 0) {
         perror("Poll failed");
@@ -22,10 +20,8 @@ int server_event_loop(int server_fd, pollfd fds[], int* p_poll_count, char* buff
 
     // loop through sockets
     for (int i = 0; i < 10; i++) {
-        // skip empty sockets
-        if (fds[i].fd == 0) return -1;
-        // if it's the listening socket create a new connection
-        else if (fds[i].fd == server_fd && (fds[i].revents & POLLIN)) {
+        // listening socket -> create a new connection
+        if (p_list->fds[i].fd == server_fd && (p_list->fds[i].revents & POLLIN)) {
             sockaddr_in client_addr = {0};
             socklen_t client_len = sizeof(client_addr);
 
@@ -34,39 +30,28 @@ int server_event_loop(int server_fd, pollfd fds[], int* p_poll_count, char* buff
                 perror("Accept failed!");
                 continue;
             }
-
-            pollfd client_poll = {0};
-            client_poll.fd = client_fd;
-            client_poll.events = POLLIN;
-
-            // !weird implementation
-            fds[*p_poll_count] = client_poll;
-            (*p_poll_count)++;
+            
+            poll_list_add(p_list, client_fd, POLLIN);
 
             fprintf(stdout, "New client connected with fd = %d\n", client_fd);
-            
         }
-        // for client sockets with data to read:
-        else if (fds[i].revents & POLLIN) {
+        // client sockets -> receive data
+        else if (p_list->fds[i].revents & POLLIN) {
             // read data
-            int bytes = recv(fds[i].fd, buffer, sizeof(buffer), 0);
+            int bytes = recv(p_list->fds[i].fd, buffer, sizeof(buffer), 0);
             if (bytes <= 0) {
                 // handle disconnection or error
-                fprintf(stdout, "Client disconnected: fd = %d\n", fds[i].fd);
-                close(fds[i].fd);
-                fds[i].fd = 0;
-                    
-                // !weird implementation
-                (*p_poll_count)--;
-            } else {
-                buffer[bytes] = '\0';
-                fprintf(stdout, "Recieved from fd = %d:\n%s\n", 
-                    fds[i].fd, buffer
-                );
-
-                // echo back
-                send(fds[i].fd, buffer, bytes, 0);
+                fprintf(stdout, "Client disconnected: fd = %d\n", p_list->fds[i].fd);
+                
+                if (poll_list_remove(p_list, p_list->fds[i].fd) == 0)
+                    return -1;
             }
+            buffer[bytes] = '\0';
+            fprintf(stdout, "Recieved from fd = %d:\n%s\n", 
+                p_list->fds[i].fd, buffer);
+
+            // echo back
+            send(p_list->fds[i].fd, buffer, bytes, 0);
         }
     }
 
@@ -85,19 +70,15 @@ int run_server(const unsigned short port) {
         return -1;
 
     // setup polling
-    pollfd fds[10] = {0};
-    pollfd server_poll = {0};
-    server_poll.fd = socket_fd;
-    server_poll.events = POLLIN;
-    fds[0] = server_poll;
-
-    int poll_count = 1;
+    poll_list plist;
+    poll_list_init(&plist);
+    poll_list_add(&plist, socket_fd, POLLIN);
 
     char buffer[buffer_size];
 
     // event loop implementation
     while (1) {
-        const int status = server_event_loop(socket_fd, fds, &poll_count, buffer);
+        const int status = server_event_loop(socket_fd, &plist, buffer);
         if (status == -1) continue;
     }
 
