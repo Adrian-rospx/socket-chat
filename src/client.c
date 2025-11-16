@@ -99,7 +99,7 @@ int run_client (const unsigned short server_port, const char* ip_address) {
     if (server_fd == -1)
         return -1;
 
-    if (connect_to_server(server_fd, server_port, ip_address) == -1)
+    if (connect_client_to_server(server_fd, server_port, ip_address) == -1)
         return -1;
 
     // setup polling

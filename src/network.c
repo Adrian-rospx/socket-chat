@@ -1,13 +1,11 @@
 #include <arpa/inet.h>
-#include <bits/types/struct_timeval.h>
 #include <errno.h>
 #include <netinet/in.h>
 #include <fcntl.h>
-#include <string.h>
-#include <sys/select.h>
 #include <sys/socket.h>
 
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "network.h"
@@ -63,7 +61,7 @@ int start_server_listener(int socket_fd, unsigned short port,
     return 0;
 }
 
-int connect_to_server(const int socket_fd, const unsigned short server_port, 
+int connect_client_to_server(const int socket_fd, const unsigned short server_port, 
     const char* ip_address) {
     // set server address
     sockaddr_in server_addr = {0};
@@ -80,37 +78,23 @@ int connect_to_server(const int socket_fd, const unsigned short server_port,
             return -1;
         }
 
-        // handle non-blocking behaviour
-        fd_set write_fds;
-        struct timeval timeout;
+        pollfd pfd;
+        pfd.fd = socket_fd;
+        pfd.events = POLLOUT;
 
-        // setup file descriptor set
-        FD_ZERO(&write_fds);
-        FD_SET(socket_fd, &write_fds);
-
-        // set timeout
-        timeout.tv_sec = 5;
-        timeout.tv_usec = 0;
-
-        int ret = select(socket_fd + 1, NULL, &write_fds, NULL, &timeout);
+        int ret = poll(&pfd, 1, 5000);
 
         if (ret == 0) {
             fputs("Error: connection timeout\n", stderr);
             close(socket_fd);
             return -1;
         } else if (ret < 0) {
-            perror("Error during select");
+            perror("Error during poll");
             close(socket_fd);
             return -1;
         }
 
-        // ensure socket is in the write set
-        if (FD_ISSET(socket_fd, &write_fds) == 0) {
-            fputs("Error: Socket not set\n", stderr);
-            close(socket_fd);
-            return -1;
-        }
-
+        // check for connection errors
         int error = 0;
         socklen_t len = sizeof(error);
 

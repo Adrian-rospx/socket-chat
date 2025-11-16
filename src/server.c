@@ -87,15 +87,15 @@ int run_server(const unsigned short port) {
         return -1;
 
     // setup polling
-    poll_list plist;
-    poll_list_init(&plist);
-    poll_list_add(&plist, socket_fd, POLLIN);
+    poll_list p_list;
+    poll_list_init(&p_list);
+    poll_list_add(&p_list, socket_fd, POLLIN);
 
     char buffer[buffer_size];
 
     // event loop implementation
     while (1) {
-        const int status = server_event_loop(socket_fd, &plist, buffer);
+        const int status = server_event_loop(socket_fd, &p_list, buffer);
         if (status == -1) continue;
     }
 
