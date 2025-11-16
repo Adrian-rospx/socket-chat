@@ -24,7 +24,7 @@ typedef struct {
 } socket_buffer;
 
 /* intialise socket buffer values */
-int socket_buffer_init(int fd);
+int socket_buffer_init(socket_buffer* s_buf, int fd);
 
 /* Queue message for sending to destination */
 int socket_buffer_queue_ongoing(socket_buffer* s_buf, uint8_t* data, size_t length);

@@ -6,31 +6,29 @@
 
 #include "utils/socket_buffer.h"
 
-const size_t default_s_buf_alloc = 16; 
+const size_t default_s_buf_alloc = 64; 
 
-int socket_buffer_init(int fd) {
-    socket_buffer s_buf;
-    
-    s_buf.fd = fd;
-    s_buf.has_length = 0;
+int socket_buffer_init(socket_buffer* s_buf, int fd) {
+    s_buf->fd = fd;
+    s_buf->has_length = 0;
 
-    s_buf.incoming_buffer = (uint8_t*)malloc(sizeof(uint8_t*) * default_s_buf_alloc);
-    if (s_buf.incoming_buffer == NULL) {
+    s_buf->incoming_buffer = (uint8_t*)malloc(sizeof(uint8_t*) * default_s_buf_alloc);
+    if (s_buf->incoming_buffer == NULL) {
         fputs("Error: failed to allocate socket io buffer", stderr);
         return -1;
     }
 
-    s_buf.outgoing_buffer = (uint8_t*)malloc(sizeof(uint8_t) * default_s_buf_alloc);
-    if (s_buf.outgoing_buffer == NULL) {
+    s_buf->outgoing_buffer = (uint8_t*)malloc(sizeof(uint8_t) * default_s_buf_alloc);
+    if (s_buf->outgoing_buffer == NULL) {
         fputs("Error: failed to allocate socket io buffer", stderr);
         return -1;
     }
 
-    s_buf.incoming_capacity = 16;
-    s_buf.outgoing_capacity = 16;
+    s_buf->incoming_capacity = default_s_buf_alloc;
+    s_buf->outgoing_capacity = default_s_buf_alloc;
 
-    s_buf.incoming_length = 0;
-    s_buf.outgoing_length = 0;
+    s_buf->incoming_length = 0;
+    s_buf->outgoing_length = 0;
 
     return 0;
 }

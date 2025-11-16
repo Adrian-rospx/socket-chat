@@ -10,11 +10,14 @@
 #include <unistd.h>
 
 #include "network.h"
+#include "utils/socket_buffer.h"
 
 typedef struct pollfd pollfd;
 
-int client_stdin_event(pollfd p_fd, char* buffer) {
-    ssize_t bytes = read(STDIN_FILENO, buffer, sizeof(buffer)-1);
+int client_stdin_event(pollfd p_fd, socket_buffer* sock_buf) {
+    char data[256];
+    ssize_t bytes = read(STDIN_FILENO, data,
+        sizeof(data)-1);
 
     if (bytes == 0) {
         fputs("EOF on stdin. Exiting...", stdout);
@@ -24,15 +27,22 @@ int client_stdin_event(pollfd p_fd, char* buffer) {
         return -1;
     }
 
+    socket_buffer_queue_ongoing(sock_buf, (uint8_t*)data, sizeof(data)-1);
+
     if (!(p_fd.revents & POLLOUT)) {
         fputs("Server not ready for writing, must implement buffering\n", stdout);
         return 0;
     }
 
-    if (send(p_fd.fd, buffer, strlen(buffer), 0) == -1) {
+    ssize_t bytes_sent = send(p_fd.fd, sock_buf->outgoing_buffer,
+        sock_buf->outgoing_length, 0); 
+
+    if (bytes_sent == -1) {
         perror("Send error");
         return -1;
     }
+
+    socket_buffer_deque_ongoing(sock_buf, bytes_sent);
 
     return 0;
 }
@@ -53,7 +63,7 @@ int client_read_event(pollfd p_fd, char* buffer) {
     return 0;
 }
 
-int client_event_loop(pollfd** fds, char* buffer, const int timeout_ms) {
+int client_event_loop(pollfd** fds, char* buffer, socket_buffer* sock_buf, const int timeout_ms) {
     int ret = poll((*fds), 2, timeout_ms);
 
     if (ret == -1) {
@@ -76,7 +86,7 @@ int client_event_loop(pollfd** fds, char* buffer, const int timeout_ms) {
 
     // handle user input
     if ((*fds)[0].revents & POLLIN) {
-        return client_stdin_event((*fds)[0], buffer);
+        return client_stdin_event((*fds)[0], sock_buf);
     }
 
     // handle server messages
@@ -112,14 +122,19 @@ int run_client (const unsigned short server_port, const char* ip_address) {
 
     char buffer[1024] = {0};
 
+    // setup io buffer
+    socket_buffer sock_buf;
+    socket_buffer_init(&sock_buf, server_fd);
+
     while (1) {
-        const int status = client_event_loop(&fds, buffer, timeout_ms);
+        const int status = client_event_loop(&fds, buffer, &sock_buf, timeout_ms);
         if (status == 3) // exit
             break;
         else if (status == -1) // error
             continue;
     }
 
+    socket_buffer_free(&sock_buf);
     free(fds);
 
     close(server_fd);
