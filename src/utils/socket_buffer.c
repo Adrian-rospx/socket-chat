@@ -151,7 +151,7 @@ int socket_buffer_process_incoming(socket_buffer* s_buf) {
         }
 
         strncpy(msg, (char*)s_buf->incoming_buffer, s_buf->exp_msg_len);
-        fprintf(stdout, "Message: %s\n", msg);
+        fprintf(stdout, "Message from incoming: %s\n", msg);
 
         free(msg);
         // remove message from buffer

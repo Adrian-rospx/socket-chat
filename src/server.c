@@ -1,5 +1,6 @@
 #include <stddef.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/poll.h>
 #include <sys/socket.h>
@@ -34,9 +35,15 @@ int server_connect_event(poll_list* p_list, sockbuf_list* sbuf_list, int server_
     return 0;
 }
 
-int server_read_event(poll_list* p_list, sockbuf_list* sbuf_list, int fd) {
-    fputs("Read event\n", stdout);
+int server_read_event(poll_list* p_list, sockbuf_list* sbuf_list, const int fd) {
     socket_buffer* sock_buf = sockbuf_list_get(sbuf_list, fd);
+    
+    if (sock_buf == NULL) {
+        fputs("Error: Can't find socket fd for reading\n", stderr);
+        return -1;
+    }
+    
+    fputs("Read event\n", stdout);
     
     // read data
     char data[128];
@@ -92,6 +99,7 @@ int server_message_handler(socket_buffer* sock_buf) {
     return 0;
 }
 
+/* Write outgoing buffer contents */
 int server_write_event(sockbuf_list* sbuf_list, int fd) {
     socket_buffer* sock_buf = sockbuf_list_get(sbuf_list, fd);
     if (sock_buf->outgoing_length == 0)
@@ -128,11 +136,13 @@ int server_event_loop(int server_fd, poll_list* p_list, sockbuf_list* sbuf_list)
     for (size_t i = 0; i < p_list->size; i++) {
         const int fd = p_list->fds[i].fd;
 
-        // listening socket -> create a new connection
-        if ((p_list->fds[i].revents & POLLIN) &&
-            p_list->fds[i].fd == server_fd) {
-            if (server_connect_event(p_list, sbuf_list, server_fd) == -1)
-                continue;
+        if (fd == server_fd) {
+            // listening socket -> create a new connection
+            if (p_list->fds[i].revents & POLLIN)
+                if (server_connect_event(p_list, sbuf_list, server_fd) == -1)
+                    continue;
+            // skip rest for server socket
+            continue;
         }
         // client read -> receive data
         if (p_list->fds[i].revents & POLLIN) {
@@ -146,8 +156,12 @@ int server_event_loop(int server_fd, poll_list* p_list, sockbuf_list* sbuf_list)
         }
 
         // handle messages
-        if (fd != server_fd)
-            server_message_handler(sockbuf_list_get(sbuf_list, fd));
+        socket_buffer* sock_buf = sockbuf_list_get(sbuf_list, fd);
+        if (sock_buf == NULL)
+            continue;
+            
+        if (server_message_handler(sock_buf) == -1)
+            continue;
 
     }
     // check for socket errors or disconnects
