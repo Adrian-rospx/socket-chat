@@ -159,7 +159,7 @@ int socket_buffer_process_incoming(socket_buffer* s_buf) {
         s_buf->has_length = 0;
     }
 
-    return 0;
+    return 0; // incomplete data
 }
 
 int socket_buffer_free(socket_buffer* s_buf) {
