@@ -70,16 +70,17 @@ int poll_list_remove(poll_list* plist, const int fd) {
 
     // resize array if possible
     if (plist->size % DEF_POLL_LIST_ALLOC == 0) {
-        pollfd* temp_ptr = realloc(plist->fds, 
-            sizeof(pollfd) * (plist->capacity - DEF_POLL_LIST_ALLOC));
+        const size_t new_cap = (plist->size / DEF_POLL_LIST_ALLOC + 1) *
+            DEF_POLL_LIST_ALLOC;
+        pollfd* temp_ptr = realloc(plist->fds, sizeof(pollfd) * new_cap);
 
         if (temp_ptr == NULL) {
-            fputs("Error: realloc shrink fail\n", stderr);
+            fputs("Error: couldn't realloc poll list memory\n", stderr);
             return -1;
         }
 
         plist->fds = temp_ptr;
-        plist->capacity -= DEF_POLL_LIST_ALLOC;
+        plist->capacity = new_cap;
     }
 
     return 0;

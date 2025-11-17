@@ -3,7 +3,6 @@
 #include <sys/poll.h>
 #include <sys/socket.h>
 
-#include <errno.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
@@ -13,7 +12,7 @@
 #include "utils/poll_list.h"
 #include "utils/socket_buffer.h"
 
-typedef struct pollfd pollfd;
+#include "client.h"
 
 // read from the console
 int client_stdin_event(socket_buffer* sock_buf) {
@@ -95,7 +94,7 @@ int client_event_loop(poll_list* p_list, socket_buffer* sock_buf, const int time
         // if (bytes == -1) {
         //     if (errno != EAGAIN && errno != EWOULDBLOCK) {
         //         perror("Heartbeat send error");
-        //         return -1;
+        //         return 3;
         //     }
         // }
         // return 0;
@@ -144,6 +143,7 @@ int run_client (const unsigned short server_port, const char* ip_address) {
 
     while (1) {
         const int status = client_event_loop(&p_list, &sock_buf, timeout_ms);
+
         if (status == 3) // exit
             break;
         else if (status == -1) // error

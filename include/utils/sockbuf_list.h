@@ -10,15 +10,24 @@ typedef struct {
     size_t capacity;
 } sockbuf_list;
 
-/* Initialise socket buffer memory */
+/*  Initialise socket buffer memory 
+
+    Throws malloc errors
+*/
 int sockbuf_list_init(sockbuf_list* sbuf_l);
 
 socket_buffer* sockbuf_list_get(const sockbuf_list* sbuf_l, const int fd);
 
-/* Add a new socket buffer to the the list */
+/*  Add a new socket buffer to the the list 
+
+    Throws memory realloc errors
+*/
 int sockbuf_list_append(sockbuf_list* sbuf_l, const int fd);
 
-/* Remove the socket buffer at the fd from the list */
+/*  Remove the socket buffer at the fd from the list
+
+    Throws fd not found and memory realloc errors
+*/
 int sockbuf_list_remove(sockbuf_list* sbuf_l, const int fd);
 
 /* Free list memory and all socket buffer memory */

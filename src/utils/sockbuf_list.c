@@ -86,8 +86,10 @@ int sockbuf_list_remove(sockbuf_list* sbuf_l, const int fd) {
 
     // shrink if possible
     if (sbuf_l->size % DEF_SOCKBUF_LIST_ALLOC == 0) {
+        const size_t new_cap = (sbuf_l->size / DEF_SOCKBUF_LIST_ALLOC + 1) *
+            DEF_SOCKBUF_LIST_ALLOC;
         socket_buffer* temp_ptr = realloc(sbuf_l->bufs, 
-            sizeof(socket_buffer) * (sbuf_l->capacity - DEF_SOCKBUF_LIST_ALLOC));
+            sizeof(socket_buffer) * new_cap);
 
         if (temp_ptr == NULL) {
             fputs("Error: couldn't reallocate socket buffer list memory\n", stderr);
@@ -95,7 +97,7 @@ int sockbuf_list_remove(sockbuf_list* sbuf_l, const int fd) {
         }
 
         sbuf_l->bufs = temp_ptr;
-        sbuf_l->capacity -= DEF_SOCKBUF_LIST_ALLOC;
+        sbuf_l->capacity = new_cap;
     }
     return 0;
 }

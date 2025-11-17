@@ -19,7 +19,10 @@ int poll_list_init(poll_list* p_list);
 /* Add a pollfd element to the list */
 int poll_list_add(poll_list* p_list, const int fd, const short events);
 
-/* Remove the element with the specified fd */
+/*  Remove the element with the specified fd
+
+    Throws fd not found and realloc errors 
+*/
 int poll_list_remove(poll_list* p_list, const int fd);
 
 /* Free the allocated memory */
