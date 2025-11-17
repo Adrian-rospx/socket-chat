@@ -5,17 +5,17 @@
 
 #include "utils/poll_list.h"
 
-const int DEFAULT_ALLOCATION = 4;
+#define DEF_POLL_LIST_ALLOC 4
 
 int poll_list_init(poll_list* plist) {
-    plist->fds = (pollfd*)malloc(sizeof(pollfd) * DEFAULT_ALLOCATION);
+    plist->fds = (pollfd*)malloc(sizeof(pollfd) * DEF_POLL_LIST_ALLOC);
     if (plist->fds == NULL) {
         fputs("Error: malloc fail\n", stderr);
         return -1;
     }
 
     plist->size = 0;
-    plist->capacity = DEFAULT_ALLOCATION;
+    plist->capacity = DEF_POLL_LIST_ALLOC;
 
     return 0;
 }
@@ -24,7 +24,7 @@ int poll_list_add(poll_list* plist, const int fd, const short events) {
     // increase capacity if needed
     if (plist->size + 1 > plist->capacity) {
         pollfd* temp = (pollfd*)realloc(plist->fds,
-            sizeof(pollfd) * (plist->capacity + DEFAULT_ALLOCATION));
+            sizeof(pollfd) * (plist->capacity + DEF_POLL_LIST_ALLOC));
         if (temp == NULL) {
             fputs("Error: realloc add fail\n", stderr);
             return -1;
@@ -45,7 +45,7 @@ int poll_list_add(poll_list* plist, const int fd, const short events) {
 
 int poll_list_remove(poll_list* plist, const int fd) {
     // find index of fd
-    int index = -1;
+    ssize_t index = -1;
     for (size_t i = 0; i < plist->size; i++) {
         if (plist->fds[i].fd == fd) {
             index = i;
@@ -65,22 +65,22 @@ int poll_list_remove(poll_list* plist, const int fd) {
         plist->fds[i + 1] = temp;
     }
 
-    // resize array if possible
-    if ((plist->size - 1) % DEFAULT_ALLOCATION == 0) {
-        pollfd* temp = (pollfd*)realloc(plist->fds, 
-            sizeof(pollfd) * (plist->capacity - DEFAULT_ALLOCATION));
+    close(fd);
+    plist->size--;
 
-        if (temp == NULL) {
+    // resize array if possible
+    if (plist->size % DEF_POLL_LIST_ALLOC == 0) {
+        pollfd* temp_ptr = realloc(plist->fds, 
+            sizeof(pollfd) * (plist->capacity - DEF_POLL_LIST_ALLOC));
+
+        if (temp_ptr == NULL) {
             fputs("Error: realloc shrink fail\n", stderr);
             return -1;
         }
 
-        plist->fds = temp;
-        plist->capacity -= 4;
+        plist->fds = temp_ptr;
+        plist->capacity -= DEF_POLL_LIST_ALLOC;
     }
-
-    close(fd);
-    plist->size--;
 
     return 0;
 }

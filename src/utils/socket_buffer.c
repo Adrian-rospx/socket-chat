@@ -8,26 +8,26 @@
 
 #include "utils/socket_buffer.h"
 
-const size_t default_s_buf_alloc = 64; 
+#define DEF_S_BUF_ALLOC 64
 
 int socket_buffer_init(socket_buffer* s_buf, int fd) {
     s_buf->fd = fd;
     s_buf->has_length = 0;
 
-    s_buf->incoming_buffer = (uint8_t*)malloc(sizeof(uint8_t*) * default_s_buf_alloc);
+    s_buf->incoming_buffer = (uint8_t*)malloc(sizeof(uint8_t*) * DEF_S_BUF_ALLOC);
     if (s_buf->incoming_buffer == NULL) {
         fputs("Error: failed to allocate socket io buffer", stderr);
         return -1;
     }
 
-    s_buf->outgoing_buffer = (uint8_t*)malloc(sizeof(uint8_t) * default_s_buf_alloc);
+    s_buf->outgoing_buffer = (uint8_t*)malloc(sizeof(uint8_t) * DEF_S_BUF_ALLOC);
     if (s_buf->outgoing_buffer == NULL) {
         fputs("Error: failed to allocate socket io buffer", stderr);
         return -1;
     }
 
-    s_buf->incoming_capacity = default_s_buf_alloc;
-    s_buf->outgoing_capacity = default_s_buf_alloc;
+    s_buf->incoming_capacity = DEF_S_BUF_ALLOC;
+    s_buf->outgoing_capacity = DEF_S_BUF_ALLOC;
 
     s_buf->incoming_length = 0;
     s_buf->outgoing_length = 0;
@@ -41,7 +41,7 @@ int socket_buffer_queue_outgoing(socket_buffer* s_buf, uint8_t* data, size_t len
     // grow if needed
     if (new_length > s_buf->outgoing_capacity) {
         const size_t new_cap = 
-            ((new_length) / default_s_buf_alloc + 1) 
+            ((new_length) / DEF_S_BUF_ALLOC + 1) 
             * s_buf->outgoing_capacity;
 
         uint8_t* temp_ptr = realloc(s_buf->outgoing_buffer,
@@ -73,7 +73,7 @@ int socket_buffer_deque_outgoing(socket_buffer* s_buf, ssize_t bytes) {
 
     // shrink if possible
     const size_t temp_cap = 
-        (s_buf->outgoing_length / default_s_buf_alloc + 1) * default_s_buf_alloc;
+        (s_buf->outgoing_length / DEF_S_BUF_ALLOC + 1) * DEF_S_BUF_ALLOC;
 
     if (temp_cap < s_buf->outgoing_capacity) {
         uint8_t* temp_ptr = realloc(s_buf->outgoing_buffer, 
@@ -96,7 +96,7 @@ int socket_buffer_append_incoming(socket_buffer* s_buf, uint8_t* data, size_t le
     // resize if necessary
     if (new_length > s_buf->incoming_capacity) {
         const size_t new_cap = 
-            ((new_length) / default_s_buf_alloc + 1) 
+            ((new_length) / DEF_S_BUF_ALLOC + 1) 
             * s_buf->incoming_capacity;
 
         uint8_t* temp_ptr = realloc(s_buf->outgoing_buffer,
