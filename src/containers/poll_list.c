@@ -44,6 +44,16 @@ int poll_list_add(poll_list* plist, const socket_t fd, const short events) {
     return 0;
 }
 
+/* Get the pollfd type at the specified fd in the poll list */
+pollfd* poll_list_get(poll_list* plist, const socket_t fd) {
+    for (size_t i = 0; i < plist->size; i++) {
+        if (plist->fds[i].fd == fd) 
+            return &plist->fds[i];
+    }
+    return NULL;
+
+}
+
 int poll_list_remove(poll_list* plist, const socket_t fd) {
     // find index of fd
     ssize_t index = -1;

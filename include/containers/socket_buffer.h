@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 
+#include "containers/poll_list.h"
 #include "os_networking.h"
 
 // byte buffer for async io operations
@@ -37,9 +38,6 @@ int socket_buffer_append_incoming(socket_buffer* s_buf, uint8_t* data, size_t le
 
 /* Deque bytes from start of incoming container */
 int socket_buffer_deque_incoming(socket_buffer* s_buf, ssize_t bytes);
-
-/* Process new incoming data */
-int pipe_incoming_to_outgoing(socket_buffer* s_buf);
 
 /* Release socket buffer memory */
 int socket_buffer_free(socket_buffer* s_buf);

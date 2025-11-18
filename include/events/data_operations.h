@@ -6,6 +6,6 @@
 /*  Process incoming buffer data to send complete 
     messages to the outgoing buffer
 */
-int pipe_incoming_to_outgoing(socket_buffer* s_buf);
+int pipe_incoming_to_outgoing(socket_buffer* s_buf, poll_list* p_list);
 
 #endif

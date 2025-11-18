@@ -15,6 +15,9 @@ typedef struct {
 /* Initialise poll list */
 int poll_list_init(poll_list* p_list);
 
+/* Get the pollfd element at the specified fd in the poll list */
+pollfd* poll_list_get(poll_list* plist, const socket_t fd);
+
 /* Add a pollfd element to the list */
 int poll_list_add(poll_list* p_list, const socket_t fd, const short events);
 

@@ -1,10 +1,6 @@
 #include <stddef.h>
-#include <stdint.h>
-#include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include <sys/poll.h>
-#include <unistd.h>
 
 #include "os_networking.h"
 
@@ -12,6 +8,7 @@
 #include "containers/poll_list.h"
 #include "containers/sockbuf_list.h"
 #include "containers/socket_buffer.h"
+#include "events/data_operations.h"
 
 #include "server.h"
 
@@ -73,42 +70,18 @@ int server_read_event(poll_list* p_list, sockbuf_list* sbuf_list, const socket_t
         bytes_recieved) == -1)
         return -1;
     // deliver to outgoing
-    if (pipe_incoming_to_outgoing(sock_buf) == -1)
+    if (pipe_incoming_to_outgoing(sock_buf, p_list) == -1)
         return -1;
-
-    return 0;
-}
-
-int server_message_handler(socket_buffer* sock_buf) {
-    // check for message to exist
-    if (sock_buf->outgoing_length == 0)
-        return 2;
-
-    fputs("Message event\n", stdout);
-    
-    // prepare new message
-    uint8_t* message = sock_buf->outgoing_buffer;
-    uint32_t message_length = sock_buf->outgoing_length;
-    uint32_t netlen = htonl(message_length);
-
-    fputs("Message prepared\n", stdout);
-
-    socket_buffer_queue_outgoing(sock_buf, (uint8_t*)&netlen, sizeof(netlen));
-    
-    if (socket_buffer_queue_outgoing(sock_buf, 
-        (uint8_t*)message, message_length) == -1)
-        return -1;
-
-    fputs("Message queued\n", stdout);
 
     return 0;
 }
 
 /* Write outgoing buffer contents */
-int server_write_event(sockbuf_list* sbuf_list, const socket_t fd) {
+int server_write_event(sockbuf_list* sbuf_list, poll_list* p_list, const socket_t fd) {
     socket_buffer* sock_buf = sockbuf_list_get(sbuf_list, fd);
+    pollfd* pfd = poll_list_get(p_list, fd);
 
-    if (sock_buf == NULL) {
+    if (sock_buf == NULL || pfd == NULL) {
         fputs("Error: file descriptor not found\n", stderr);
         return -1;
     }
@@ -119,7 +92,7 @@ int server_write_event(sockbuf_list* sbuf_list, const socket_t fd) {
     fputs("Write event\n", stdout);
 
     // send as many bytes as possible
-    ssize_t bytes_sent = send(fd, sock_buf,
+    ssize_t bytes_sent = send(fd, sock_buf->outgoing_buffer,
         sock_buf->outgoing_length, 0);
 
     if (bytes_sent == -1) {
@@ -128,8 +101,14 @@ int server_write_event(sockbuf_list* sbuf_list, const socket_t fd) {
     }
     fprintf(stdout, "Log: bytes written: %ld\n", bytes_sent);
 
+    // remove sent bytes
     if (socket_buffer_deque_outgoing(sock_buf, bytes_sent))
         return -1;
+
+    // remove the pollout flag when empty
+    if (sock_buf->outgoing_length == 0) {
+        pfd->events &= ~POLLOUT;
+    }
 
     return 0;
 }
@@ -142,7 +121,6 @@ int server_event_loop(poll_list* p_list, sockbuf_list* sbuf_list) {
         perror("Poll failed");
         return -1;
     }
-
     const unsigned short server_event = p_list->fds[0].revents;
 
     // check for socket errors or disconnects
@@ -150,12 +128,11 @@ int server_event_loop(poll_list* p_list, sockbuf_list* sbuf_list) {
         fputs("Error: socket error or disconnect detected. Exiting...\n", stderr);
         return 3;
     }
-
     // server recieve -> connect user
     if (server_event & POLLIN)
         if (server_connect_event(p_list, sbuf_list) == -1)
             return -1;
-    
+
     // loop through sockets
     for (size_t i = 1; i < p_list->size; i++) {
         const unsigned short client_event = p_list->fds[i].revents;
@@ -167,8 +144,8 @@ int server_event_loop(poll_list* p_list, sockbuf_list* sbuf_list) {
                 continue;
         }
         // server write -> send message data
-        if (server_event & POLLOUT)
-            if (server_write_event(sbuf_list, fd) == -1)
+        if (client_event & POLLOUT)
+            if (server_write_event(sbuf_list, p_list, fd) == -1)
                 continue;
     }
 

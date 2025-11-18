@@ -1,17 +1,19 @@
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/poll.h>
 
 #include "os_networking.h"
 
 #include "utils/socket_commands.h"
 #include "containers/poll_list.h"
 #include "containers/socket_buffer.h"
-
+#include "events/data_operations.h"
 
 #include "client.h"
 
 // read from the console
-int client_stdin_event(socket_buffer* sock_buf) {
+int client_stdin_event(socket_buffer* sock_buf, poll_list* p_list) {
     char message[1024];
 
     ssize_t bytes = read(STDIN_FILENO, message,
@@ -24,19 +26,28 @@ int client_stdin_event(socket_buffer* sock_buf) {
         perror("Read stdin error");
         return -1;
     }
-    fprintf(stdout, "msg: %s\n", message);
+
+    message[bytes] = '\0';
+    if (message[bytes - 1] == '\n')
+        message[bytes - 1] = '\0';
+
+    fprintf(stdout, "Message sent: %s\n", message);
 
     uint32_t message_length = strlen(message);
     uint32_t netlen = htonl(message_length);
 
-    socket_buffer_queue_outgoing(sock_buf, (uint8_t*)&netlen, sizeof(netlen));
-    socket_buffer_queue_outgoing(sock_buf, (uint8_t*)message, message_length);
+    // prepare to write
+    socket_buffer_append_incoming(sock_buf, (uint8_t*)&netlen, sizeof(netlen));
+    socket_buffer_append_incoming(sock_buf, (uint8_t*)message, message_length);
+    
+    if (pipe_incoming_to_outgoing(sock_buf, p_list) == -1)
+        return -1;
 
     return 0;
 }
 
 // send buffered message to the server
-int client_write_event(socket_buffer* sock_buf) {
+int client_write_event(socket_buffer* sock_buf, poll_list* p_list) {
     ssize_t bytes_sent = send(sock_buf->fd, sock_buf->outgoing_buffer,
         sock_buf->outgoing_length, 0); 
 
@@ -44,19 +55,24 @@ int client_write_event(socket_buffer* sock_buf) {
         perror("Send error");
         return -1;
     }
-    fprintf(stdout, "Log: bytes written: %ld\n", bytes_sent);
+    fprintf(stdout, "Bytes written: %ld\n", bytes_sent);
 
     if (socket_buffer_deque_outgoing(sock_buf, bytes_sent) == -1)
         return -1;
+
+    // remove the pollout flag when empty
+    if (sock_buf->outgoing_length == 0) {
+        p_list->fds[1].events &= ~POLLOUT;
+    }
 
     return 0;
 }
 
 // read from server
-int client_read_event(pollfd p_fd, socket_buffer* sock_buf) {
-    char data[128];
+int client_read_event(socket_buffer* sock_buf, poll_list* p_list) {
+    char data[1024];
 
-    ssize_t bytes = recv(p_fd.fd, data, sizeof(data) - 1, 0);
+    ssize_t bytes = recv(sock_buf->fd, data, sizeof(data) - 1, 0);
             
     if (bytes < 0) {
         perror("Recv error");
@@ -72,7 +88,7 @@ int client_read_event(pollfd p_fd, socket_buffer* sock_buf) {
     if (socket_buffer_append_incoming(sock_buf, (uint8_t*)data, bytes) == -1)
         return -1;
 
-    if (pipe_incoming_to_outgoing(sock_buf) == -1)
+    if (pipe_incoming_to_outgoing(sock_buf, p_list) == -1)
         return -1;
 
     return 0;
@@ -90,22 +106,25 @@ int client_event_loop(poll_list* p_list, socket_buffer* sock_buf, const int time
         return -1;
     }
 
+    const unsigned short local_client_event = p_list->fds[0].revents;
+    const unsigned short server_event = p_list->fds[1].revents;
+
     // check for socket errors or disconnects
-    if (p_list->fds[1].revents & (POLLERR | POLLHUP | POLLNVAL)) {
+    if (local_client_event & (POLLERR | POLLHUP | POLLNVAL)) {
         fputs("Error: socket error or disconnect detected. Exiting...\n", stderr);
         return 3;
     }
 
     // handle user input
-    if (p_list->fds[0].revents & POLLIN)
-        return client_stdin_event(sock_buf);
+    if (local_client_event & POLLIN)
+        return client_stdin_event(sock_buf, p_list);
 
-    if ( (p_list->fds[1].revents & POLLOUT) && sock_buf->outgoing_length > 0)
-        return client_write_event(sock_buf);
+    if (server_event & POLLOUT)
+        return client_write_event(sock_buf, p_list);
 
     // handle server messages
-    if (p_list->fds[1].revents & POLLIN) 
-        return client_read_event(p_list->fds[1], sock_buf);
+    if (server_event & POLLIN) 
+        return client_read_event(sock_buf, p_list);
 
     return 0;
 }
