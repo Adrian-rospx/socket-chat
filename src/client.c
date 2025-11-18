@@ -26,6 +26,7 @@ int client_stdin_event(socket_buffer* sock_buf, poll_list* p_list) {
         perror("Read stdin error");
         return -1;
     }
+    fputs("Stdin event\n", stdout);
 
     message[bytes] = '\0';
     if (message[bytes - 1] == '\n')
@@ -48,6 +49,9 @@ int client_stdin_event(socket_buffer* sock_buf, poll_list* p_list) {
 
 // send buffered message to the server
 int client_write_event(socket_buffer* sock_buf, poll_list* p_list) {
+    if (sock_buf->outgoing_length == 0)
+        return 2;
+
     ssize_t bytes_sent = send(sock_buf->fd, sock_buf->outgoing_buffer,
         sock_buf->outgoing_length, 0); 
 
@@ -55,7 +59,7 @@ int client_write_event(socket_buffer* sock_buf, poll_list* p_list) {
         perror("Send error");
         return -1;
     }
-    fprintf(stdout, "Bytes written: %ld\n", bytes_sent);
+    fprintf(stdout, "Send Event; Bytes written: %ld\n", bytes_sent);
 
     if (socket_buffer_deque_outgoing(sock_buf, bytes_sent) == -1)
         return -1;
@@ -81,6 +85,7 @@ int client_read_event(socket_buffer* sock_buf, poll_list* p_list) {
         fputs("\nServer closed the connection. Exiting...\n", stderr);
         return 3;
     }
+    fputs("Read event\n", stdout);
 
     data[bytes] = '\0';
     fprintf(stdout, "Recieved from server: %s : %ld bytes\n", data, bytes);

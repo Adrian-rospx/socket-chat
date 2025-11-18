@@ -16,7 +16,7 @@ int pipe_incoming_to_outgoing(socket_buffer* sock_buf, poll_list* p_list) {
         memcpy(&raw_prefix, sock_buf->incoming_buffer, sizeof(uint32_t));
 
         const uint32_t prefix = ntohl(raw_prefix);
-        fprintf(stdout, "Expected message length: %d\n", prefix);
+        fprintf(stdout, "Pipe expected message length: %d\n", prefix);
 
         sock_buf->exp_msg_len = prefix;
         sock_buf->has_length = 1;
@@ -36,7 +36,7 @@ int pipe_incoming_to_outgoing(socket_buffer* sock_buf, poll_list* p_list) {
         strncpy((char*)msg, (char*)sock_buf->incoming_buffer, sock_buf->exp_msg_len);
         msg[sock_buf->exp_msg_len] = '\0';
 
-        fprintf(stdout, "Message passing: %s\n", msg);
+        fprintf(stdout, "Message passing pipe: %s\n", msg);
         
         // queue to output
         socket_buffer_queue_outgoing(sock_buf, msg, sock_buf->exp_msg_len);
