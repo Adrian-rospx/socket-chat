@@ -129,41 +129,6 @@ int socket_buffer_deque_incoming(socket_buffer* s_buf, ssize_t bytes) {
     return 0;
 }
 
-int socket_buffer_process_incoming(socket_buffer* s_buf) {
-    // process new data
-    if (!s_buf->has_length) {
-        if (s_buf->incoming_length < 4)
-            return 0; // not enough data
-
-        // register new message length
-        s_buf->exp_msg_len = ntohl((uint32_t)*s_buf->incoming_buffer);
-        s_buf->has_length = 1;
-        // remove it from the buffer
-        socket_buffer_deque_incoming(s_buf, sizeof(uint32_t));
-    }
-
-    if (s_buf->has_length && s_buf->incoming_length >= s_buf->exp_msg_len) {
-        // process message
-        uint8_t* msg = malloc((s_buf->exp_msg_len + 1) * sizeof(uint8_t));
-        if (msg == NULL) {
-            fputs("Error: couldn't allocate message memory", stderr);
-            return -1;
-        }
-
-        strncpy((char*)msg, (char*)s_buf->incoming_buffer, s_buf->exp_msg_len);
-        msg[s_buf->exp_msg_len] = '\0';
-
-        fprintf(stdout, "Message from incoming: %s\n", msg);
-
-        free(msg);
-        // remove message from buffer
-        socket_buffer_deque_incoming(s_buf, s_buf->exp_msg_len);
-        s_buf->has_length = 0;
-    }
-
-    return 0; // incomplete data
-}
-
 int socket_buffer_free(socket_buffer* s_buf) {
     free(s_buf->incoming_buffer);
     free(s_buf->outgoing_buffer);

@@ -39,7 +39,7 @@ int socket_buffer_append_incoming(socket_buffer* s_buf, uint8_t* data, size_t le
 int socket_buffer_deque_incoming(socket_buffer* s_buf, ssize_t bytes);
 
 /* Process new incoming data */
-int socket_buffer_process_incoming(socket_buffer* s_buf);
+int pipe_incoming_to_outgoing(socket_buffer* s_buf);
 
 /* Release socket buffer memory */
 int socket_buffer_free(socket_buffer* s_buf);

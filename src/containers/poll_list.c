@@ -88,6 +88,9 @@ int poll_list_remove(poll_list* plist, const socket_t fd) {
 }
 
 int poll_list_free(poll_list* plist) {
+    for (size_t i = 0; i < plist->size; i++) {
+        close(plist->fds[i].fd);
+    }
     free(plist->fds);
     plist->capacity = 0;
     plist->size = 0;

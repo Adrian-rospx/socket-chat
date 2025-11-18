@@ -15,10 +15,11 @@ target_sources(SocketChat
         src/main.c
         src/server.c
         src/client.c
-        src/socket_commands.c
         src/containers/poll_list.c
         src/containers/socket_buffer.c
         src/containers/sockbuf_list.c
+        src/utils/socket_commands.c
+        src/events/data_operations.c
 )
 
 # headers

@@ -3,7 +3,7 @@
 
 #include "os_networking.h"
 
-#include "socket_commands.h"
+#include "utils/socket_commands.h"
 #include "containers/poll_list.h"
 #include "containers/socket_buffer.h"
 
@@ -66,10 +66,13 @@ int client_read_event(pollfd p_fd, socket_buffer* sock_buf) {
         return 3;
     }
 
+    data[bytes] = '\0';
+    fprintf(stdout, "Recieved from server: %s : %ld bytes\n", data, bytes);
+
     if (socket_buffer_append_incoming(sock_buf, (uint8_t*)data, bytes) == -1)
         return -1;
 
-    if (socket_buffer_process_incoming(sock_buf) == -1)
+    if (pipe_incoming_to_outgoing(sock_buf) == -1)
         return -1;
 
     return 0;
@@ -82,18 +85,15 @@ int client_event_loop(poll_list* p_list, socket_buffer* sock_buf, const int time
         perror("Poll error");
         return -1;
     } else if (ret == 0) {
-        // // handle timeout
-        // const char* msg = "HEALTHCHECK";
-        // ssize_t msg_len = strlen(msg);
+        // time out
+        fputs( "Timed out!\n", stderr);
+        return -1;
+    }
 
-        // ssize_t bytes = send(p_list->fds[1].fd, msg, msg_len, 0);
-        // if (bytes == -1) {
-        //     if (errno != EAGAIN && errno != EWOULDBLOCK) {
-        //         perror("Heartbeat send error");
-        //         return 3;
-        //     }
-        // }
-        // return 0;
+    // check for socket errors or disconnects
+    if (p_list->fds[1].revents & (POLLERR | POLLHUP | POLLNVAL)) {
+        fputs("Error: socket error or disconnect detected. Exiting...\n", stderr);
+        return 3;
     }
 
     // handle user input
@@ -107,20 +107,15 @@ int client_event_loop(poll_list* p_list, socket_buffer* sock_buf, const int time
     if (p_list->fds[1].revents & POLLIN) 
         return client_read_event(p_list->fds[1], sock_buf);
 
-    // check for socket errors or disconnects
-    if (p_list->fds[1].revents & (POLLERR | POLLHUP | POLLNVAL)) {
-        fputs("Error: socket error or disconnect detected. Exiting...\n", stderr);
-        return 3;
-    }
     return 0;
 }
 
 int run_client (const unsigned short server_port, const char* ip_address) {
-    const int timeout_ms = 60000;
+    const int timeout_ms = 45000;
 
     socket_t server_fd = create_socket();
     if (server_fd == SOCKET_INVALID)
-        return SOCKET_INVALID;
+        return -1;
 
     if (connect_client_to_server(server_fd, server_port, ip_address) == -1)
         return -1;
@@ -146,10 +141,9 @@ int run_client (const unsigned short server_port, const char* ip_address) {
             continue;
     }
 
+    // cleanup
     socket_buffer_free(&sock_buf);
     poll_list_free(&p_list);
-
-    close(server_fd);
 
     return 0;
 }

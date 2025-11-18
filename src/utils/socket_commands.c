@@ -4,7 +4,7 @@
 
 #include "os_networking.h"
 
-#include "socket_commands.h"
+#include "utils/socket_commands.h"
 
 socket_t create_socket(void) {
     // create an ipv4 socket
