@@ -2,9 +2,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "utils/socket_buffer.h"
+#include "containers/socket_buffer.h"
 
-#include "utils/sockbuf_list.h"
+#include "containers/sockbuf_list.h"
 
 #define DEF_SOCKBUF_LIST_ALLOC 4
 
@@ -23,7 +23,7 @@ int sockbuf_list_init(sockbuf_list* sbuf_l) {
     return 0;
 }
 
-socket_buffer* sockbuf_list_get(const sockbuf_list* sbuf_l, const int fd) {
+socket_buffer* sockbuf_list_get(const sockbuf_list* sbuf_l, const socket_t fd) {
     for (size_t i = 0; i < sbuf_l->size; i++) {
         if (sbuf_l->bufs[i].fd == fd) {
             return &sbuf_l->bufs[i];
@@ -33,7 +33,7 @@ socket_buffer* sockbuf_list_get(const sockbuf_list* sbuf_l, const int fd) {
     return NULL;
 }
 
-int sockbuf_list_append(sockbuf_list* sbuf_l, const int fd) {
+int sockbuf_list_append(sockbuf_list* sbuf_l, const socket_t fd) {
     const size_t new_length = sbuf_l->size + 1;
     
     // grow if neccesary
@@ -60,7 +60,7 @@ int sockbuf_list_append(sockbuf_list* sbuf_l, const int fd) {
     return 0;
 }
 
-int sockbuf_list_remove(sockbuf_list* sbuf_l, const int fd) {
+int sockbuf_list_remove(sockbuf_list* sbuf_l, const socket_t fd) {
     // find index
     ssize_t index = -1;
     for (size_t i = 0; i < sbuf_l->size; i++) {

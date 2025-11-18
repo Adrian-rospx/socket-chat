@@ -1,39 +1,35 @@
-#include <arpa/inet.h>
 #include <errno.h>
-#include <netinet/in.h>
-#include <fcntl.h>
-#include <sys/socket.h>
-
 #include <stdio.h>
 #include <string.h>
-#include <unistd.h>
 
-#include "network.h"
+#include "os_networking.h"
 
-int create_socket(void) {
+#include "socket_commands.h"
+
+socket_t create_socket(void) {
     // create an ipv4 socket
-    int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
+    socket_t socket_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (socket_fd == -1) {
         perror("Socket failed!");
         close(socket_fd);
-        return -1;
+        return SOCKET_INVALID;
     }
 
     // setup non-blocking flag
     int flags = fcntl(socket_fd, F_GETFL, 0);
     if (flags == -1) {
         perror("fcntl F_GETFL");
-        return -1;
+        return SOCKET_INVALID;
     }
     if (fcntl(socket_fd, F_SETFL, flags | O_NONBLOCK) == -1) {
         perror("fcntl F_SETFL");
-        return -1;
+        return SOCKET_INVALID;
     }
 
     return socket_fd;
 }
 
-int start_server_listener(int socket_fd, unsigned short port, 
+int start_server_listener(socket_t socket_fd, unsigned short port, 
     const int max_queued_connections) {
     // socket address setup
     sockaddr_in address = {0};
@@ -61,7 +57,7 @@ int start_server_listener(int socket_fd, unsigned short port,
     return 0;
 }
 
-int connect_client_to_server(const int socket_fd, const unsigned short server_port, 
+int connect_client_to_server(const socket_t socket_fd, const unsigned short server_port, 
     const char* ip_address) {
     // set server address
     sockaddr_in server_addr = {0};

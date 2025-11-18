@@ -11,10 +11,10 @@ target_sources(SocketChat
         src/main.c
         src/server.c
         src/client.c
-        src/network.c
-        src/utils/poll_list.c
-        src/utils/socket_buffer.c
-        src/utils/sockbuf_list.c
+        src/socket_commands.c
+        src/containers/poll_list.c
+        src/containers/socket_buffer.c
+        src/containers/sockbuf_list.c
 )
 
 target_include_directories(SocketChat PRIVATE include)

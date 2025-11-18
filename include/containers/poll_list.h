@@ -1,8 +1,7 @@
 #ifndef POLL_LIST_H
 #define POLL_LIST_H
 
-#include <sys/poll.h>
-#include <sys/types.h>
+#include "os_networking.h"
 
 typedef struct pollfd pollfd;
 
@@ -17,13 +16,13 @@ typedef struct {
 int poll_list_init(poll_list* p_list);
 
 /* Add a pollfd element to the list */
-int poll_list_add(poll_list* p_list, const int fd, const short events);
+int poll_list_add(poll_list* p_list, const socket_t fd, const short events);
 
 /*  Remove the element with the specified fd
 
     Throws fd not found and realloc errors 
 */
-int poll_list_remove(poll_list* p_list, const int fd);
+int poll_list_remove(poll_list* p_list, const socket_t fd);
 
 /* Free the allocated memory */
 int poll_list_free(poll_list* p_list);

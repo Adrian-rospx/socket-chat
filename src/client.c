@@ -1,16 +1,12 @@
-#include <netinet/in.h>
-#include <stdint.h>
-#include <sys/poll.h>
-#include <sys/socket.h>
-
 #include <stdio.h>
 #include <string.h>
-#include <sys/types.h>
-#include <unistd.h>
 
-#include "network.h"
-#include "utils/poll_list.h"
-#include "utils/socket_buffer.h"
+#include "os_networking.h"
+
+#include "socket_commands.h"
+#include "containers/poll_list.h"
+#include "containers/socket_buffer.h"
+
 
 #include "client.h"
 
@@ -122,9 +118,9 @@ int client_event_loop(poll_list* p_list, socket_buffer* sock_buf, const int time
 int run_client (const unsigned short server_port, const char* ip_address) {
     const int timeout_ms = 60000;
 
-    int server_fd = create_socket();
-    if (server_fd == -1)
-        return -1;
+    socket_t server_fd = create_socket();
+    if (server_fd == SOCKET_INVALID)
+        return SOCKET_INVALID;
 
     if (connect_client_to_server(server_fd, server_port, ip_address) == -1)
         return -1;

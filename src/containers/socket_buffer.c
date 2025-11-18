@@ -1,16 +1,16 @@
-#include <netinet/in.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
 
-#include "utils/socket_buffer.h"
+#include "os_networking.h"
+
+#include "containers/socket_buffer.h"
 
 #define DEF_S_BUF_ALLOC 64
 
-int socket_buffer_init(socket_buffer* s_buf, int fd) {
+int socket_buffer_init(socket_buffer* s_buf, const socket_t fd) {
     s_buf->fd = fd;
     s_buf->has_length = 0;
 
@@ -144,7 +144,7 @@ int socket_buffer_process_incoming(socket_buffer* s_buf) {
 
     if (s_buf->has_length && s_buf->incoming_length >= s_buf->exp_msg_len) {
         // process message
-        char* msg = malloc(s_buf->exp_msg_len * sizeof(uint8_t));
+        char* msg = malloc((s_buf->exp_msg_len + 1) * sizeof(uint8_t));
         if (msg == NULL) {
             fputs("Error: couldn't allocate message memory", stderr);
             return -1;

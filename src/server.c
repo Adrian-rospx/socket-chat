@@ -1,31 +1,29 @@
 #include <stddef.h>
-#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/poll.h>
-#include <sys/socket.h>
 #include <stdio.h>
-#include <sys/types.h>
 #include <unistd.h>
 
-#include "network.h"
-#include "utils/poll_list.h"
-#include "utils/sockbuf_list.h"
-#include "utils/socket_buffer.h"
+#include "os_networking.h"
+
+#include "socket_commands.h"
+#include "containers/poll_list.h"
+#include "containers/sockbuf_list.h"
+#include "containers/socket_buffer.h"
 
 #include "server.h"
 
-int server_connect_event(poll_list* p_list, sockbuf_list* sbuf_list, int server_fd) {
+int server_connect_event(poll_list* p_list, sockbuf_list* sbuf_list, socket_t server_fd) {
     fputs("Connect event\n", stdout);
     sockaddr_in client_addr = {0};
     socklen_t client_len = sizeof(client_addr);
 
-    int client_fd = accept(server_fd, (sockaddr*)&client_addr, &client_len);
+    socket_t client_fd = accept(server_fd, (sockaddr*)&client_addr, &client_len);
     if (client_fd < 0) {
         perror("Accept failed!");
         return -1;
     }
-
+// ISSUE HERE
     // add client data
     poll_list_add(p_list, client_fd, POLLIN | POLLOUT);
     sockbuf_list_append(sbuf_list, client_fd);
@@ -35,7 +33,7 @@ int server_connect_event(poll_list* p_list, sockbuf_list* sbuf_list, int server_
     return 0;
 }
 
-int server_read_event(poll_list* p_list, sockbuf_list* sbuf_list, const int fd) {
+int server_read_event(poll_list* p_list, sockbuf_list* sbuf_list, const socket_t fd) {
     socket_buffer* sock_buf = sockbuf_list_get(sbuf_list, fd);
     
     if (sock_buf == NULL) {
@@ -100,7 +98,7 @@ int server_message_handler(socket_buffer* sock_buf) {
 }
 
 /* Write outgoing buffer contents */
-int server_write_event(sockbuf_list* sbuf_list, int fd) {
+int server_write_event(sockbuf_list* sbuf_list, const socket_t fd) {
     socket_buffer* sock_buf = sockbuf_list_get(sbuf_list, fd);
     if (sock_buf->outgoing_length == 0)
         return 2;
@@ -123,7 +121,7 @@ int server_write_event(sockbuf_list* sbuf_list, int fd) {
     return 0;
 }
 
-int server_event_loop(int server_fd, poll_list* p_list, sockbuf_list* sbuf_list) {
+int server_event_loop(poll_list* p_list, sockbuf_list* sbuf_list, const socket_t server_fd) {
     // poll indefinitely
     int ret = poll(p_list->fds, p_list->size, -1);
 
@@ -176,9 +174,9 @@ int server_event_loop(int server_fd, poll_list* p_list, sockbuf_list* sbuf_list)
 int run_server(const unsigned short port) {
     const int max_queued_connections = 10;
 
-    int socket_fd = create_socket();
-    if (socket_fd == -1)
-        return -1;
+    socket_t socket_fd = create_socket();
+    if (socket_fd == SOCKET_INVALID)
+        return SOCKET_INVALID;
 
     if (start_server_listener(socket_fd, port, max_queued_connections) == -1) 
         return -1;
@@ -194,7 +192,7 @@ int run_server(const unsigned short port) {
 
     // event loop implementation
     while (1) {
-        const int status = server_event_loop(socket_fd, &p_list, &sbuf_list);
+        const int status = server_event_loop(&p_list, &sbuf_list, socket_fd);
         if (status == -1) 
             continue;
         else if (status == 3)

@@ -3,7 +3,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "utils/poll_list.h"
+#include "containers/poll_list.h"
+#include "os_networking.h"
 
 #define DEF_POLL_LIST_ALLOC 4
 
@@ -20,7 +21,7 @@ int poll_list_init(poll_list* plist) {
     return 0;
 }
 
-int poll_list_add(poll_list* plist, const int fd, const short events) {
+int poll_list_add(poll_list* plist, const socket_t fd, const short events) {
     // increase capacity if needed
     if (plist->size + 1 > plist->capacity) {
         pollfd* temp = (pollfd*)realloc(plist->fds,
@@ -43,7 +44,7 @@ int poll_list_add(poll_list* plist, const int fd, const short events) {
     return 0;
 }
 
-int poll_list_remove(poll_list* plist, const int fd) {
+int poll_list_remove(poll_list* plist, const socket_t fd) {
     // find index of fd
     ssize_t index = -1;
     for (size_t i = 0; i < plist->size; i++) {

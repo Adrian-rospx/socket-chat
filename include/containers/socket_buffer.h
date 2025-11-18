@@ -1,13 +1,13 @@
 #ifndef SOCKET_BUFFER_H
 #define SOCKET_BUFFER_H
 
-#include <stddef.h>
-#include <stdint.h>
 #include <stdio.h>
+
+#include "os_networking.h"
 
 // byte buffer for async io operations
 typedef struct {
-    int fd;
+    socket_t fd;
     
     uint8_t* incoming_buffer;
     size_t incoming_length;
@@ -24,7 +24,7 @@ typedef struct {
 } socket_buffer;
 
 /* intialise socket buffer values */
-int socket_buffer_init(socket_buffer* s_buf, int fd);
+int socket_buffer_init(socket_buffer* s_buf, const socket_t fd);
 
 /* Queue message for sending to destination */
 int socket_buffer_queue_outgoing(socket_buffer* s_buf, uint8_t* data, size_t length);
