@@ -144,13 +144,15 @@ int socket_buffer_process_incoming(socket_buffer* s_buf) {
 
     if (s_buf->has_length && s_buf->incoming_length >= s_buf->exp_msg_len) {
         // process message
-        char* msg = malloc((s_buf->exp_msg_len + 1) * sizeof(uint8_t));
+        uint8_t* msg = malloc((s_buf->exp_msg_len + 1) * sizeof(uint8_t));
         if (msg == NULL) {
             fputs("Error: couldn't allocate message memory", stderr);
             return -1;
         }
 
-        strncpy(msg, (char*)s_buf->incoming_buffer, s_buf->exp_msg_len);
+        strncpy((char*)msg, (char*)s_buf->incoming_buffer, s_buf->exp_msg_len);
+        msg[s_buf->exp_msg_len] = '\0';
+
         fprintf(stdout, "Message from incoming: %s\n", msg);
 
         free(msg);

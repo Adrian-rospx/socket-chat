@@ -40,7 +40,7 @@ int sockbuf_list_append(sockbuf_list* sbuf_l, const socket_t fd) {
     if (sbuf_l->size + 1 > sbuf_l->capacity) {
         const size_t new_cap = (new_length / DEF_SOCKBUF_LIST_ALLOC + 1) * DEF_SOCKBUF_LIST_ALLOC;
 
-        socket_buffer* temp_ptr = realloc(sbuf_l, 
+        socket_buffer* temp_ptr = realloc(sbuf_l->bufs, 
             new_cap * sizeof(socket_buffer));
 
         if (temp_ptr == NULL) {

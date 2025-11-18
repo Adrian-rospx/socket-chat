@@ -100,6 +100,12 @@ int server_message_handler(socket_buffer* sock_buf) {
 /* Write outgoing buffer contents */
 int server_write_event(sockbuf_list* sbuf_list, const socket_t fd) {
     socket_buffer* sock_buf = sockbuf_list_get(sbuf_list, fd);
+
+    if (sock_buf == NULL) {
+        fputs("Error: file descriptor not found\n", stderr);
+        return -1;
+    }
+
     if (sock_buf->outgoing_length == 0)
         return 2;
 
