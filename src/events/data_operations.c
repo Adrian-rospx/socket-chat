@@ -1,4 +1,6 @@
 #include <memory.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -12,34 +14,39 @@ int pipe_incoming_to_outgoing(socket_buffer* sock_buf, poll_list* p_list) {
             return 0; // not enough data
 
         // register new message length
-        uint32_t raw_prefix;
-        memcpy(&raw_prefix, sock_buf->incoming_buffer, sizeof(uint32_t));
+        uint32_t raw_prefix_net = 0;
+        memcpy(&raw_prefix_net, sock_buf->incoming_buffer, sizeof(uint32_t));
+        const uint32_t message_length = ntohl(raw_prefix_net);
 
-        const uint32_t prefix = ntohl(raw_prefix);
-        fprintf(stdout, "Pipe expected message length: %d\n", prefix);
-
-        sock_buf->exp_msg_len = prefix;
+        sock_buf->exp_msg_len = message_length;
         sock_buf->has_length = 1;
 
-        // remove it from the buffer
+        /* Remove prefix bytes from incoming */
         socket_buffer_deque_incoming(sock_buf, sizeof(uint32_t));
     }
 
     if (sock_buf->has_length && sock_buf->incoming_length >= sock_buf->exp_msg_len) {
+        size_t length = sock_buf->exp_msg_len;
+
         // process message
-        uint8_t* msg = malloc((sock_buf->exp_msg_len + 1) * sizeof(uint8_t));
+        uint8_t* msg = malloc((length + 1) * sizeof(uint8_t));
         if (msg == NULL) {
             fputs("Error: couldn't allocate message memory", stderr);
             return -1;
         }
 
-        strncpy((char*)msg, (char*)sock_buf->incoming_buffer, sock_buf->exp_msg_len);
-        msg[sock_buf->exp_msg_len] = '\0';
+        // copy message bytes
+        memcpy(msg, sock_buf->incoming_buffer, length);
+        msg[length] = '\0';
 
-        fprintf(stdout, "Message passing pipe: %s\n", msg);
-        
-        // queue to output
-        socket_buffer_queue_outgoing(sock_buf, msg, sock_buf->exp_msg_len);
+        const uint32_t out_prefix_net = htonl((uint32_t)length);
+
+        // queue prefix and message to output
+        socket_buffer_queue_outgoing(sock_buf, (uint8_t*)&out_prefix_net, 
+            sizeof(uint32_t));
+        socket_buffer_queue_outgoing(sock_buf, msg, length);
+
+        fprintf(stdout, "Message passing pipe (length: %ld): %s\n", length, msg);
 
         free(msg);
 

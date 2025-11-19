@@ -9,7 +9,7 @@
 /* Handle new client connections */
 int server_connect_event(poll_list* p_list, sockbuf_list* sbuf_list);
 
-/* Read from client into the incoming buffer
+/*  Read from client into the incoming buffer
 
     Sets POLLOUT flag when done
 */

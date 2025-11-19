@@ -4,6 +4,7 @@
 #include "containers/sockbuf_list.h"
 #include "events/data_operations.h"
 #include "utils/socket_commands.h"
+#include <stdio.h>
 
 int server_connect_event(poll_list* p_list, sockbuf_list* sbuf_list) {
     fputs("Connect event\n", stdout);
@@ -39,9 +40,11 @@ int server_read_event(poll_list* p_list, sockbuf_list* sbuf_list, const socket_t
     fputs("Read event\n", stdout);
     
     // read data
-    char data[1024];
+    uint8_t data[1024];
     ssize_t bytes_recieved = recv(fd, data, sizeof(data) - 1, 0);
+    data[bytes_recieved] = '\0';
 
+    fprintf(stdout, "Data recieved: %s\n", data);
     fprintf(stdout, "Bytes recieved: %ld\n", bytes_recieved);
     
     if (bytes_recieved <= 0) {
