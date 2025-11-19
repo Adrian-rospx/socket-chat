@@ -20,6 +20,8 @@ target_sources(SocketChat
         src/containers/sockbuf_list.c
         src/utils/socket_commands.c
         src/events/data_operations.c
+        src/events/client_events.c
+        src/events/server_events.c
 )
 
 # headers
