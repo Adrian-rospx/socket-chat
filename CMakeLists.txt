@@ -18,6 +18,7 @@ target_sources(SocketChat
         src/containers/poll_list.c
         src/containers/socket_buffer.c
         src/containers/sockbuf_list.c
+        src/containers/text_message.c
         src/utils/socket_commands.c
         src/events/data_operations.c
         src/events/client_events.c
