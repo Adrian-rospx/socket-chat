@@ -39,7 +39,7 @@ int client_event_loop(poll_list* p_list, socket_buffer* sock_buf, const int time
 
     // handle server messages
     if (server_event & POLLIN) 
-        return client_read_event(sock_buf, p_list);
+        return client_read_event(sock_buf);
 
     return 0;
 }

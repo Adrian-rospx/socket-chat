@@ -9,6 +9,10 @@
 */
 int pipe_incoming_to_message(socket_buffer* sock_buf, text_message* txt_msg);
 
+/*  Write message to screen */
+
+int pipe_message_to_stdout(text_message* txt_msg);
+
 /*  Send the message to the outgoing buffer
 
     Activates the POLLOUT flag 

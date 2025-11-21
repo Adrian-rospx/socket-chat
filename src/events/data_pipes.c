@@ -42,7 +42,16 @@ int pipe_incoming_to_message(socket_buffer* sock_buf, text_message* txt_msg) {
     return 2; // incomplete data
 }
 
+int pipe_message_to_stdout(text_message* txt_msg) {
+    if (txt_msg->length == 0)
+        return 2;
 
+    const size_t length = txt_msg->length;
+
+    fprintf(stdout, "[server]: %.*s\n", (int)length, txt_msg->buffer);
+
+    return 0;
+}
 
 int pipe_message_to_outgoing(socket_buffer* sock_buf, poll_list* p_list, 
     text_message* txt_msg) {

@@ -10,6 +10,6 @@ int client_stdin_event(socket_buffer* sock_buf, poll_list* p_list);
 int client_write_event(socket_buffer* sock_buf, poll_list* p_list);
 
 /* Read message from server and write to incoming buffer */
-int client_read_event(socket_buffer* sock_buf, poll_list* p_list);
+int client_read_event(socket_buffer* sock_buf);
 
 #endif

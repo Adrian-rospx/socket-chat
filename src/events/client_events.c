@@ -70,7 +70,7 @@ int client_write_event(socket_buffer* sock_buf, poll_list* p_list) {
     return 0;
 }
 
-int client_read_event(socket_buffer* sock_buf, poll_list* p_list) {
+int client_read_event(socket_buffer* sock_buf) {
     char data[1024];
 
     ssize_t bytes = recv(sock_buf->fd, data, sizeof(data) - 1, 0);
@@ -90,12 +90,12 @@ int client_read_event(socket_buffer* sock_buf, poll_list* p_list) {
     if (socket_buffer_append_incoming(sock_buf, (uint8_t*)data, bytes) == -1)
         return -1;
 
+    // additionally, process it and print it to the screen
     text_message txt_msg;
-    if (pipe_incoming_to_message(sock_buf, &txt_msg) == -1)
+    if (pipe_incoming_to_message(sock_buf, &txt_msg) != 0)
         return -1;
 
-    if (pipe_message_to_outgoing(sock_buf, p_list, &txt_msg) == -1)
-        return -1;
+    pipe_message_to_stdout(&txt_msg);
     
     return 0;
 }
