@@ -28,8 +28,9 @@ int pipe_incoming_to_message(socket_buffer* sock_buf, text_message* txt_msg) {
 
     if (sock_buf->has_length && sock_buf->incoming_length >= sock_buf->exp_msg_len) {
 
-        text_message_init(txt_msg, (char*)sock_buf->incoming_buffer, 
-            sock_buf->exp_msg_len);
+        if (text_message_init(txt_msg, sock_buf->incoming_buffer, 
+            sock_buf->exp_msg_len) == -1)
+            return -1;
 
         // remove message from buffer
         socket_buffer_deque_incoming(sock_buf, sock_buf->exp_msg_len);
@@ -57,10 +58,10 @@ int pipe_message_to_outgoing(socket_buffer* sock_buf, poll_list* p_list,
         return -1;
     }
 
-    fprintf(stdout, "msg len: %ld %ld\nsize %ld\n", txt_msg->length, length, sizeof(msg_ptr));
+    fprintf(stdout, "msg len: %zu %zu\n", txt_msg->length, length);
 
     // copy message bytes
-    memcpy(msg_ptr, (uint8_t*)txt_msg->buffer, length);
+    memcpy(msg_ptr, txt_msg->buffer, length);
     msg_ptr[length] = '\0';
 
     const uint32_t out_prefix_net = htonl((uint32_t)length);
