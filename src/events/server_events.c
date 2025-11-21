@@ -1,8 +1,9 @@
+#include "containers/test_message.h"
 #include "os_networking.h"
 
 #include "containers/poll_list.h"
 #include "containers/sockbuf_list.h"
-#include "events/data_operations.h"
+#include "events/data_pipes.h"
 #include "utils/socket_commands.h"
 #include <stdio.h>
 
@@ -66,9 +67,14 @@ int server_read_event(poll_list* p_list, sockbuf_list* sbuf_list, const socket_t
         bytes_recieved) == -1)
         return -1;
     // deliver to outgoing, set POLLOUT flag
-    if (pipe_incoming_to_outgoing(sock_buf, p_list) == -1)
+    text_message txt_msg;
+
+    if (pipe_incoming_to_message(sock_buf, &txt_msg) == -1)
         return -1;
 
+    if (pipe_message_to_outgoing(sock_buf, p_list, &txt_msg) == -1)
+        return -1;
+    
     return 0;
 }
 

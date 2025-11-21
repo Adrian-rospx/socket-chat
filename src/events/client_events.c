@@ -4,7 +4,8 @@
 
 #include "containers/socket_buffer.h"
 #include "containers/poll_list.h"
-#include "events/data_operations.h"
+#include "containers/test_message.h"
+#include "events/data_pipes.h"
 
 int client_stdin_event(socket_buffer* sock_buf, poll_list* p_list) {
     char message[1024];
@@ -34,7 +35,11 @@ int client_stdin_event(socket_buffer* sock_buf, poll_list* p_list) {
     socket_buffer_append_incoming(sock_buf, (uint8_t*)&netlen, sizeof(uint32_t));
     socket_buffer_append_incoming(sock_buf, (uint8_t*)message, message_length);
     
-    if (pipe_incoming_to_outgoing(sock_buf, p_list) == -1)
+    text_message txt_msg;
+    if (pipe_incoming_to_message(sock_buf, &txt_msg) == -1)
+        return -1;
+
+    if (pipe_message_to_outgoing(sock_buf, p_list, &txt_msg) == -1)
         return -1;
 
     return 0;
@@ -84,8 +89,12 @@ int client_read_event(socket_buffer* sock_buf, poll_list* p_list) {
     if (socket_buffer_append_incoming(sock_buf, (uint8_t*)data, bytes) == -1)
         return -1;
 
-    if (pipe_incoming_to_outgoing(sock_buf, p_list) == -1)
+    text_message txt_msg;
+    if (pipe_incoming_to_message(sock_buf, &txt_msg) == -1)
         return -1;
 
+    if (pipe_message_to_outgoing(sock_buf, p_list, &txt_msg) == -1)
+        return -1;
+    
     return 0;
 }
