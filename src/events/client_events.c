@@ -56,7 +56,7 @@ int client_write_event(socket_buffer* sock_buf, poll_list* p_list) {
         perror("Send error");
         return -1;
     }
-    fprintf(stdout, "Send Event; Bytes written: %ld\n", bytes_sent);
+    fputs("Send Event\n", stdout);
 
     if (socket_buffer_deque_outgoing(sock_buf, bytes_sent) == -1)
         return -1;
@@ -64,6 +64,7 @@ int client_write_event(socket_buffer* sock_buf, poll_list* p_list) {
     // remove the pollout flag when empty
     if (sock_buf->outgoing_length == 0) {
         p_list->fds[1].events &= ~POLLOUT;
+        fputs("POLLOUT reset\n", stdout);
     }
 
     return 0;
@@ -84,7 +85,7 @@ int client_read_event(socket_buffer* sock_buf, poll_list* p_list) {
     fputs("Read event\n", stdout);
 
     data[bytes] = '\0';
-    fprintf(stdout, "Recieved from server: %s : %ld bytes\n", data, bytes);
+    fprintf(stdout, "Recieved %ld bytes from server\n", bytes);
 
     if (socket_buffer_append_incoming(sock_buf, (uint8_t*)data, bytes) == -1)
         return -1;

@@ -52,17 +52,14 @@ int pipe_message_to_outgoing(socket_buffer* sock_buf, poll_list* p_list,
     const size_t length = txt_msg->length;
     
     // process message
-    uint8_t* msg_ptr = malloc((length + 1) * sizeof(uint8_t));
+    uint8_t* msg_ptr = malloc(length * sizeof(uint8_t));
     if (msg_ptr == NULL) {
         fputs("Error: couldn't allocate message memory\n", stderr);
         return -1;
     }
 
-    fprintf(stdout, "msg len: %zu %zu\n", txt_msg->length, length);
-
     // copy message bytes
     memcpy(msg_ptr, txt_msg->buffer, length);
-    msg_ptr[length] = '\0';
 
     const uint32_t out_prefix_net = htonl((uint32_t)length);
 
@@ -71,17 +68,19 @@ int pipe_message_to_outgoing(socket_buffer* sock_buf, poll_list* p_list,
         sizeof(uint32_t));
     socket_buffer_queue_outgoing(sock_buf, msg_ptr, length);
 
-    fprintf(stdout, "Message passing pipe (length: %ld): %s\n", length, msg_ptr);
+    fprintf(stdout, "Message passing pipe (length: %ld): %.*s\n", 
+        length, (int)length, msg_ptr);
 
     free(msg_ptr);
     
     // add pollout flag to events
     pollfd* pfd = poll_list_get(p_list, sock_buf->fd);
     if (pfd == NULL) {
-        fputs("Error: could not get poll list element", stderr);
+        fputs("Error: could not get poll list element\n", stderr);
         return -1;
     }
 
+    fputs("POLLOUT set\n", stdout);
     pfd->events |= POLLOUT;
 
     return 0;

@@ -100,7 +100,7 @@ int server_write_event(sockbuf_list* sbuf_list, poll_list* p_list, const socket_
         perror("Send error");
         return -1;
     }
-    fprintf(stdout, "Log: bytes written: %ld\n", bytes_sent);
+    fprintf(stdout, "Bytes written: %ld\n", bytes_sent);
 
     // remove sent bytes
     if (socket_buffer_deque_outgoing(sock_buf, bytes_sent))
@@ -110,7 +110,7 @@ int server_write_event(sockbuf_list* sbuf_list, poll_list* p_list, const socket_
     if (sock_buf->outgoing_length == 0) {
         pfd->events &= ~POLLOUT;
 
-        fputs("Pollout off\n", stdout);
+        fputs("POLLOUT reset\n", stdout);
     }
 
     return 0;

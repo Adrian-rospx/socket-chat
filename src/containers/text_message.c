@@ -14,14 +14,14 @@ int text_message_init(text_message* msg, const uint8_t* text, const size_t lengt
     }
 
     if (msg->buffer == NULL) {
-        msg->buffer = malloc(length + 1 * sizeof(uint8_t));
+        msg->buffer = malloc(length * sizeof(uint8_t));
 
         if (msg->buffer == NULL) {
             fputs("Error: couldn't allocate message memory\n", stderr);
             return -1;
         }
     } else {
-        uint8_t* temp_ptr = realloc(msg->buffer, length + 1);
+        uint8_t* temp_ptr = realloc(msg->buffer, length);
 
         if (temp_ptr == NULL) {
             fputs("Error: couldn't reallocate message memory\n", stderr);
@@ -34,7 +34,7 @@ int text_message_init(text_message* msg, const uint8_t* text, const size_t lengt
     msg->capacity = length;
     msg->length = length;
     
-    memcpy(msg, text, length);
+    memcpy(msg->buffer, text, length);
 
     return 0;
 }
