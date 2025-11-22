@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "os_networking.h"
+
 #include "containers/socket_buffer.h"
 #include "containers/poll_list.h"
 #include "containers/test_message.h"

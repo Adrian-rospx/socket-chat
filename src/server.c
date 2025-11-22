@@ -51,13 +51,13 @@ int server_event_loop(poll_list* p_list, sockbuf_list* sbuf_list) {
 }
 
 int run_server(const unsigned short port) {
-    const int max_queued_connections = 10;
+    winsock_cleanup();
 
     socket_t socket_fd = create_socket();
     if (socket_fd == SOCKET_INVALID)
         return -1;
 
-    if (start_server_listener(socket_fd, port, max_queued_connections) == -1) 
+    if (start_server_listener(socket_fd, port) == -1) 
         return -1;
 
     // setup polling with server fd on index 0
@@ -80,7 +80,9 @@ int run_server(const unsigned short port) {
 
     poll_list_free(&p_list);
     sockbuf_list_free(&sbuf_list);
-    close(socket_fd);
+    socket_close(socket_fd);
+
+    winsock_cleanup();
 
     return 0;
 }

@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "os_networking.h"
+
 #include "containers/poll_list.h"
 #include "containers/socket_buffer.h"
 #include "containers/test_message.h"
@@ -83,7 +85,7 @@ int pipe_message_to_outgoing(socket_buffer* sock_buf, poll_list* p_list,
     free(msg_ptr);
     
     // add pollout flag to events
-    pollfd* pfd = poll_list_get(p_list, sock_buf->fd);
+    struct pollfd* pfd = poll_list_get(p_list, sock_buf->fd);
     if (pfd == NULL) {
         fputs("Error: could not get poll list element\n", stderr);
         return -1;

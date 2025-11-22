@@ -6,31 +6,22 @@
 
 #include "utils/socket_commands.h"
 
+#define MAX_SERVER_CONNECTIONS 32
+
 socket_t create_socket(void) {
     // create an ipv4 socket
     socket_t socket_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (socket_fd == -1) {
         perror("Socket failed!");
-        close(socket_fd);
+        socket_close(socket_fd);
         return SOCKET_INVALID;
     }
 
     // setup non-blocking flag
-    int flags = fcntl(socket_fd, F_GETFL, 0);
-    if (flags == -1) {
-        perror("fcntl F_GETFL");
-        return SOCKET_INVALID;
-    }
-    if (fcntl(socket_fd, F_SETFL, flags | O_NONBLOCK) == -1) {
-        perror("fcntl F_SETFL");
-        return SOCKET_INVALID;
-    }
-
-    return socket_fd;
+    return socket_set_nonblocking(socket_fd);
 }
 
-int start_server_listener(socket_t socket_fd, unsigned short port, 
-    const int max_queued_connections) {
+int start_server_listener(socket_t socket_fd, unsigned short port) {
     // socket address setup
     sockaddr_in address = {0};
     address.sin_family = AF_INET;
@@ -42,14 +33,14 @@ int start_server_listener(socket_t socket_fd, unsigned short port,
     // bind socket
     if (bind(socket_fd, (sockaddr*)&address, sizeof(address)) < 0) {
         perror("Bind failed!");
-        close(socket_fd);
+        socket_close(socket_fd);
         return -1;
     }
 
     // start listener
-    if (listen(socket_fd, max_queued_connections) < 0) {
+    if (listen(socket_fd, MAX_SERVER_CONNECTIONS) < 0) {
         perror("Listen failed!");
-        close(socket_fd);
+        socket_close(socket_fd);
         return -1;
     }
     fprintf(stdout, "Listening on port %hd\n", port);
@@ -82,11 +73,11 @@ int connect_client_to_server(const socket_t socket_fd, const unsigned short serv
 
         if (ret == 0) {
             fputs("Error: connection timeout\n", stderr);
-            close(socket_fd);
+            socket_close(socket_fd);
             return -1;
         } else if (ret < 0) {
             perror("Error during poll");
-            close(socket_fd);
+            socket_close(socket_fd);
             return -1;
         }
 
@@ -96,13 +87,13 @@ int connect_client_to_server(const socket_t socket_fd, const unsigned short serv
 
         if (getsockopt(socket_fd, SOL_SOCKET, SO_ERROR, &error, &len) < 0) {
             perror("getsockopt failed");
-            close(socket_fd);
+            socket_close(socket_fd);
             return -1;
         }
 
         if (error != 0) {
             fprintf(stderr, "Error: connection failed. %s\n", strerror(error));
-            close(socket_fd);
+            socket_close(socket_fd);
             return -1;
         }
     }

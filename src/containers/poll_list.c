@@ -1,7 +1,6 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 
 #include "containers/poll_list.h"
 #include "os_networking.h"
@@ -76,7 +75,7 @@ int poll_list_remove(poll_list* plist, const socket_t fd) {
         plist->fds[i + 1] = temp;
     }
 
-    close(fd);
+    socket_close(fd);
     plist->size--;
 
     // resize array if possible
@@ -99,7 +98,7 @@ int poll_list_remove(poll_list* plist, const socket_t fd) {
 
 int poll_list_free(poll_list* plist) {
     for (size_t i = 0; i < plist->size; i++) {
-        close(plist->fds[i].fd);
+        socket_close(plist->fds[i].fd);
     }
     free(plist->fds);
     plist->capacity = 0;

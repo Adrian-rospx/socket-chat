@@ -3,8 +3,6 @@
 
 #include "os_networking.h"
 
-typedef struct pollfd pollfd;
-
 /* Dynamic array of pollfd data types */
 typedef struct {
     pollfd* fds;

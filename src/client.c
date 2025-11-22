@@ -45,6 +45,8 @@ int client_event_loop(poll_list* p_list, socket_buffer* sock_buf, const int time
 }
 
 int run_client (const unsigned short server_port, const char* ip_address) {
+    winsock_init();
+
     const int timeout_ms = 45000;
 
     socket_t server_fd = create_socket();
@@ -78,6 +80,8 @@ int run_client (const unsigned short server_port, const char* ip_address) {
     // cleanup
     socket_buffer_free(&sock_buf);
     poll_list_free(&p_list);
+
+    winsock_cleanup();
 
     return 0;
 }
