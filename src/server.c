@@ -1,4 +1,5 @@
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 
@@ -17,7 +18,7 @@ int server_event_loop(poll_list* p_list, sockbuf_list* sbuf_list) {
 
     if (ret < 0) {
         perror("Poll failed");
-        return -1;
+        return EXIT_FAILURE;
     }
     const unsigned short server_event = p_list->fds[0].revents;
 
@@ -28,37 +29,38 @@ int server_event_loop(poll_list* p_list, sockbuf_list* sbuf_list) {
     }
     // server recieve -> connect user
     if (server_event & POLLIN)
-        if (server_connect_event(p_list, sbuf_list) == -1)
-            return -1;
+        if (server_connect_event(p_list, sbuf_list) == EXIT_FAILURE)
+            return EXIT_FAILURE;
 
     // loop through sockets
     for (size_t i = 1; i < p_list->size; i++) {
+
         const unsigned short client_event = p_list->fds[i].revents;
         const socket_t fd = p_list->fds[i].fd;
 
         // client read -> receive data
         if (client_event & POLLIN) {
-            if (server_read_event(p_list, sbuf_list, fd) == -1)
+            if (server_read_event(p_list, sbuf_list, fd) == EXIT_FAILURE)
                 continue;
         }
         // server write -> send message data
         if (client_event & POLLOUT)
-            if (server_write_event(sbuf_list, p_list, fd) == -1)
+            if (server_write_event(sbuf_list, p_list, fd) == EXIT_FAILURE)
                 continue;
     }
 
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 int run_server(const unsigned short port) {
-    winsock_cleanup();
+    winsock_init();
 
     socket_t socket_fd = create_socket();
     if (socket_fd == SOCKET_INVALID)
-        return -1;
+        return EXIT_FAILURE;
 
-    if (start_server_listener(socket_fd, port) == -1) 
-        return -1;
+    if (start_server_listener(socket_fd, port) == EXIT_FAILURE) 
+        return EXIT_FAILURE;
 
     // setup polling with server fd on index 0
     poll_list p_list;
@@ -72,7 +74,7 @@ int run_server(const unsigned short port) {
     // event loop implementation
     while (1) {
         const int status = server_event_loop(&p_list, &sbuf_list);
-        if (status == -1) 
+        if (status == EXIT_FAILURE) 
             continue;
         else if (status == 3)
             break;
@@ -84,5 +86,5 @@ int run_server(const unsigned short port) {
 
     winsock_cleanup();
 
-    return 0;
+    return EXIT_SUCCESS;
 }

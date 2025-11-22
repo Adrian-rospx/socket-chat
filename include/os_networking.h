@@ -1,9 +1,13 @@
 #ifndef OS_NETWORKING_H
 #define OS_NETWORKING_H
 
-// system header includes
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
+
+#include "utils/logging.h"
+
+// system header includes
 
 #ifdef _WIN32
     #include <WinSock2.h>
@@ -61,17 +65,21 @@ static inline int socket_set_nonblocking(socket_t fd) {
 static inline int winsock_init(void) {
     #ifdef _WIN32
         WSADATA wsa;
-        WSAStartup(MAKEWORD(2, 2), &wsa);
+
+        if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
+            log_network_error("Socket startup failure!");
+            return EXIT_FAILURE;
+        }
     #endif
     
-    return 0;
+    return EXIT_SUCCESS;
 }
 static inline int winsock_cleanup(void) {
     #ifdef _WIN32
         WSACleanup();
     #endif
 
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 // replace poll with alias

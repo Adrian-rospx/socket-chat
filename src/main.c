@@ -21,7 +21,7 @@ int handle_flags(const int argc, char** argv,
             // server mode
             if (flags->app_mode != 0) {
                 fputs("Error: app mode can only be --server or --client\n", stderr);
-                return -1;
+                return EXIT_FAILURE;
             }
 
             flags->app_mode = 's';
@@ -34,7 +34,7 @@ int handle_flags(const int argc, char** argv,
             // client mode
             if (flags->app_mode != 0) {
                 fputs("Error: App mode can only be --server or --client\n", stderr);
-                return -1;
+                return EXIT_FAILURE;
             }
 
             flags->app_mode = 'c';
@@ -47,7 +47,7 @@ int handle_flags(const int argc, char** argv,
             // set port number
             if (i + 1 >= argc) {
                 fputs("Error: port value missing\n", stderr);
-                return -1;
+                return EXIT_FAILURE;
             }
 
             char *endptr;
@@ -55,11 +55,11 @@ int handle_flags(const int argc, char** argv,
         
             if (*endptr != '\0') {
                 fputs("Error: invalid port value\n", stderr);
-                return -1;
+                return EXIT_FAILURE;
             }
             if (port_value < 0 || port_value > 65535) {
                 fputs("Error: port value out of range\n", stderr);
-                return -1;
+                return EXIT_FAILURE;
             }
 
             flags->port = (unsigned short)port_value;
@@ -69,7 +69,7 @@ int handle_flags(const int argc, char** argv,
             // set server ip address
             if (i + 1 >= argc) {
                 fputs("Error: --address value missing\n", stderr);
-                return -1;
+                return EXIT_FAILURE;
             }
 
             snprintf(flags->ip_address, sizeof(flags->ip_address), 
@@ -77,10 +77,10 @@ int handle_flags(const int argc, char** argv,
             i++;
         } else {
             fprintf(stderr, "Error: Invalid flag at index %d\n", i);
-            return -1;
+            return EXIT_FAILURE;
         }
     }
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 int handle_input_options(app_flags* flags, 
@@ -96,7 +96,8 @@ int handle_input_options(app_flags* flags,
 
         if (fgets(buffer, sizeof(buffer), stdin) == NULL) {
             fputs("Error: failed to read input\n", stderr);
-            return -1;
+
+            return EXIT_FAILURE;
         }
 
         // clean input buffer
@@ -127,7 +128,7 @@ int handle_input_options(app_flags* flags,
             
         if (fgets(buffer, sizeof(buffer), stdin) == NULL) {
             fputs("Error: failed to read input\n", stderr);
-            return -1;
+            return EXIT_FAILURE;
         }
 
         // clean input buffer
@@ -160,7 +161,7 @@ int handle_input_options(app_flags* flags,
 
         if (fgets(buffer, sizeof(buffer), stdin) == NULL) {
             fputs("Error: failed to read input\n", stderr);
-            return -1;
+            return EXIT_FAILURE;
         }
 
         // clean input buffer
@@ -178,7 +179,7 @@ int handle_input_options(app_flags* flags,
         snprintf(flags->ip_address, sizeof(flags->ip_address), 
             "%s", buffer);
     }
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 int main(int argc, char** argv) {
@@ -188,12 +189,12 @@ int main(int argc, char** argv) {
     const char default_address[32] = "127.0.0.1";
 
     // handle flags
-    if (handle_flags(argc, argv, &flags, default_port, default_address) == -1)
-        return -1;
+    if (handle_flags(argc, argv, &flags, default_port, default_address) == EXIT_FAILURE)
+        return EXIT_FAILURE;
     
     // call user input
-    if (handle_input_options(&flags, default_port, default_address) == -1)
-        return -1;
+    if (handle_input_options(&flags, default_port, default_address) == EXIT_FAILURE)
+        return EXIT_FAILURE;
 
     // execute
     switch (flags.app_mode) {
@@ -205,7 +206,7 @@ int main(int argc, char** argv) {
             break;
         default:
             fputs("Error: Must choose either --server or --client\n", stderr);
-            return -1;
+            return EXIT_FAILURE;
     }
 
     fputs("Process ended.\n", stdout);

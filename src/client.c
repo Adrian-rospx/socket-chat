@@ -1,7 +1,9 @@
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "os_networking.h"
 
+#include "utils/logging.h"
 #include "utils/socket_commands.h"
 #include "containers/poll_list.h"
 #include "containers/socket_buffer.h"
@@ -13,12 +15,12 @@ int client_event_loop(poll_list* p_list, socket_buffer* sock_buf, const int time
     int ret = poll(p_list->fds, 2, timeout_ms);
 
     if (ret == -1) {
-        perror("Poll error");
-        return -1;
+        log_network_error("Poll error");
+        return EXIT_FAILURE;
     } else if (ret == 0) {
         // time out
-        fputs( "Timed out!\n", stderr);
-        return -1;
+        log_error( "Timed out!");
+        return EXIT_FAILURE;
     }
 
     const unsigned short local_client_event = p_list->fds[0].revents;
@@ -26,7 +28,7 @@ int client_event_loop(poll_list* p_list, socket_buffer* sock_buf, const int time
 
     // check for socket errors or disconnects
     if (local_client_event & (POLLERR | POLLHUP | POLLNVAL)) {
-        fputs("Error: socket error or disconnect detected. Exiting...\n", stderr);
+        log_error("Socket error or disconnect detected. Exiting...");
         return 3;
     }
 
@@ -41,7 +43,7 @@ int client_event_loop(poll_list* p_list, socket_buffer* sock_buf, const int time
     if (server_event & POLLIN) 
         return client_read_event(sock_buf);
 
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 int run_client (const unsigned short server_port, const char* ip_address) {
@@ -51,15 +53,15 @@ int run_client (const unsigned short server_port, const char* ip_address) {
 
     socket_t server_fd = create_socket();
     if (server_fd == SOCKET_INVALID)
-        return -1;
+        return EXIT_FAILURE;
 
     if (connect_client_to_server(server_fd, server_port, ip_address) == -1)
-        return -1;
+        return EXIT_FAILURE;
 
     // setup polling
     poll_list p_list;
-    if (poll_list_init(&p_list) == -1)
-        return -1;
+    if (poll_list_init(&p_list) == EXIT_FAILURE)
+        return EXIT_FAILURE;
 
     poll_list_add(&p_list, STDIN_FILENO, POLLIN);
     poll_list_add(&p_list, server_fd, POLLIN | POLLOUT);
@@ -73,7 +75,7 @@ int run_client (const unsigned short server_port, const char* ip_address) {
 
         if (status == 3) // exit
             break;
-        else if (status == -1) // error
+        else if (status == EXIT_FAILURE) // error
             continue;
     }
 
@@ -83,5 +85,5 @@ int run_client (const unsigned short server_port, const char* ip_address) {
 
     winsock_cleanup();
 
-    return 0;
+    return EXIT_SUCCESS;
 }
