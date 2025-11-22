@@ -1,4 +1,3 @@
-#include <WinSock2.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -68,8 +67,8 @@ int connect_client_to_server(const socket_t socket_fd, const unsigned short serv
     
     // connect to server
     if (connect(socket_fd, (sockaddr*)&server_addr, 
-        sizeof(server_addr)) != 0) {
-        if (errno != EINPROGRESS) {
+        sizeof(server_addr)) != EXIT_SUCCESS) {
+        if (sock_errno != ERRNO_WOULDBLOCK && sock_errno != EINPROGRESS && sock_errno != EAGAIN) {
             log_network_error("Connect failed!");
             return EXIT_FAILURE;
         }
@@ -106,7 +105,7 @@ int connect_client_to_server(const socket_t socket_fd, const unsigned short serv
             return EXIT_FAILURE;
         }
     }
-    
+
     fputs("Connection established\n", stdout);
 
     return EXIT_SUCCESS;

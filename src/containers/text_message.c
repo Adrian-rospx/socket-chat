@@ -50,6 +50,8 @@ int text_message_copy(text_message* msg1, text_message* msg2) {
 
 int text_message_free(text_message* msg) {
     free(msg->buffer);
+    msg->buffer = NULL;
+
     msg->capacity = 0;
     msg->length = 0;
 

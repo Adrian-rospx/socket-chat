@@ -4,8 +4,10 @@
 #include "containers/poll_list.h"
 #include "containers/sockbuf_list.h"
 #include "events/data_pipes.h"
+#include "utils/logging.h"
 #include "utils/socket_commands.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 int server_connect_event(poll_list* p_list, sockbuf_list* sbuf_list) {
     fputs("Connect event\n", stdout);
@@ -17,8 +19,8 @@ int server_connect_event(poll_list* p_list, sockbuf_list* sbuf_list) {
 
     socket_t client_fd = accept(server_fd, (sockaddr*)&client_addr, &client_len);
     if (client_fd < 0) {
-        perror("Accept failed!");
-        return -1;
+        log_network_error("Accept failed!");
+        return EXIT_FAILURE;
     }
 
     // add client data
@@ -27,15 +29,15 @@ int server_connect_event(poll_list* p_list, sockbuf_list* sbuf_list) {
 
     fprintf(stdout, "Client connected fd = %d\n", client_fd);
 
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 int server_read_event(poll_list* p_list, sockbuf_list* sbuf_list, const socket_t fd) {
     socket_buffer* sock_buf = sockbuf_list_get(sbuf_list, fd);
     
     if (sock_buf == NULL) {
-        fputs("Error: Can't find socket fd for reading\n", stderr);
-        return -1;
+        log_error("Can't find socket fd for reading");
+        return EXIT_FAILURE;
     }
     
     fputs("Read event\n", stdout);
@@ -51,31 +53,31 @@ int server_read_event(poll_list* p_list, sockbuf_list* sbuf_list, const socket_t
     if (bytes_recieved <= 0) {
         // handle disconnection or error
         if (bytes_recieved < 0) 
-            fputs("Error: Could not read from client\n", stderr);
+            log_error("Could not read from client");
 
         fprintf(stdout, "Client disconnected fd = %d\n", fd);
         
         poll_list_remove(p_list, fd);
         sockbuf_list_remove(sbuf_list, fd);
 
-        return 0;
+        return EXIT_SUCCESS;
     }
     
     // add bytes to incoming
     if (socket_buffer_append_incoming(sock_buf,
         (uint8_t*)data, 
-        bytes_recieved) == -1)
-        return -1;
+        bytes_recieved) == EXIT_FAILURE)
+        return EXIT_FAILURE;
     // deliver to outgoing, set POLLOUT flag
     text_message txt_msg;
 
-    if (pipe_incoming_to_message(sock_buf, &txt_msg) == -1)
-        return -1;
+    if (pipe_incoming_to_message(sock_buf, &txt_msg) == EXIT_FAILURE)
+        return EXIT_FAILURE;
 
-    if (pipe_message_to_outgoing(sock_buf, p_list, &txt_msg) == -1)
-        return -1;
+    if (pipe_message_to_outgoing(sock_buf, p_list, &txt_msg) == EXIT_FAILURE)
+        return EXIT_FAILURE;
     
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 int server_write_event(sockbuf_list* sbuf_list, poll_list* p_list, const socket_t fd) {
@@ -83,8 +85,8 @@ int server_write_event(sockbuf_list* sbuf_list, poll_list* p_list, const socket_
     pollfd* pfd = poll_list_get(p_list, fd);
 
     if (sock_buf == NULL || pfd == NULL) {
-        fputs("Error: file descriptor not found\n", stderr);
-        return -1;
+        log_error("File descriptor not found");
+        return EXIT_FAILURE;
     }
 
     if (sock_buf->outgoing_length == 0)
@@ -97,14 +99,14 @@ int server_write_event(sockbuf_list* sbuf_list, poll_list* p_list, const socket_
         sock_buf->outgoing_length, 0);
 
     if (bytes_sent == -1) {
-        perror("Send error");
-        return -1;
+        log_network_error("Send error");
+        return EXIT_FAILURE;
     }
     fprintf(stdout, "Bytes written: %ld\n", bytes_sent);
 
     // remove sent bytes
     if (socket_buffer_deque_outgoing(sock_buf, bytes_sent))
-        return -1;
+        return EXIT_FAILURE;
 
     // remove the pollout flag when empty
     if (sock_buf->outgoing_length == 0) {
@@ -113,5 +115,5 @@ int server_write_event(sockbuf_list* sbuf_list, poll_list* p_list, const socket_
         fputs("POLLOUT reset\n", stdout);
     }
 
-    return 0;
+    return EXIT_SUCCESS;
 }

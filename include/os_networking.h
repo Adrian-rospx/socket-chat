@@ -90,6 +90,15 @@ static inline int winsock_cleanup(void) {
     typedef struct pollfd pollfd;
 #endif
 
+// error codes
+#ifdef _WIN32
+    #define ERRNO_WOULDBLOCK WSAEWOULDBLOCK
+    #define sock_errno WSAGetLastError()
+#else
+    #define ERRNO_WOULDBLOCK EWOULDBLOCK
+    #define sock_errno errno
+#endif
+
 // define unix types
 #ifdef _WIN32
     typedef SSIZE_T ssize_t;

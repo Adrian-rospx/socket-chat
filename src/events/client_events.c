@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "os_networking.h"
@@ -8,6 +9,7 @@
 #include "containers/poll_list.h"
 #include "containers/test_message.h"
 #include "events/data_pipes.h"
+#include "utils/logging.h"
 
 int client_stdin_event(socket_buffer* sock_buf, poll_list* p_list) {
     char message[1024];
@@ -16,11 +18,11 @@ int client_stdin_event(socket_buffer* sock_buf, poll_list* p_list) {
         sizeof(message)-1);
 
     if (bytes == 0) {
-        fputs("EOF on stdin. Exiting...\n", stdout);
+        log_error("EOF on stdin. Exiting...");
         return 3;
     } else if (bytes < 0) {
-        perror("Read stdin error");
-        return -1;
+        log_network_error("Read stdin error");
+        return EXIT_FAILURE;
     }
     fputs("Stdin event\n", stdout);
 
@@ -38,11 +40,11 @@ int client_stdin_event(socket_buffer* sock_buf, poll_list* p_list) {
     socket_buffer_append_incoming(sock_buf, (uint8_t*)message, message_length);
     
     text_message txt_msg;
-    if (pipe_incoming_to_message(sock_buf, &txt_msg) == -1)
-        return -1;
+    if (pipe_incoming_to_message(sock_buf, &txt_msg) == EXIT_FAILURE)
+        return EXIT_FAILURE;
 
-    if (pipe_message_to_outgoing(sock_buf, p_list, &txt_msg) == -1)
-        return -1;
+    if (pipe_message_to_outgoing(sock_buf, p_list, &txt_msg) == EXIT_FAILURE)
+        return EXIT_FAILURE;
 
     return 0;
 }
@@ -55,13 +57,13 @@ int client_write_event(socket_buffer* sock_buf, poll_list* p_list) {
         sock_buf->outgoing_length, 0); 
 
     if (bytes_sent == -1) {
-        perror("Send error");
-        return -1;
+        log_network_error("Send error");
+        return EXIT_FAILURE;
     }
     fputs("Send Event\n", stdout);
 
-    if (socket_buffer_deque_outgoing(sock_buf, bytes_sent) == -1)
-        return -1;
+    if (socket_buffer_deque_outgoing(sock_buf, bytes_sent) == EXIT_FAILURE)
+        return EXIT_FAILURE;
 
     // remove the pollout flag when empty
     if (sock_buf->outgoing_length == 0) {
@@ -78,8 +80,8 @@ int client_read_event(socket_buffer* sock_buf) {
     ssize_t bytes = recv(sock_buf->fd, data, sizeof(data) - 1, 0);
             
     if (bytes < 0) {
-        perror("Recv error");
-        return -1;
+        log_network_error("Recv error");
+        return EXIT_FAILURE;
     } else if (bytes == 0) {
         fputs("\nServer closed the connection. Exiting...\n", stderr);
         return 3;
@@ -89,13 +91,13 @@ int client_read_event(socket_buffer* sock_buf) {
     data[bytes] = '\0';
     fprintf(stdout, "Recieved %ld bytes from server\n", bytes);
 
-    if (socket_buffer_append_incoming(sock_buf, (uint8_t*)data, bytes) == -1)
-        return -1;
+    if (socket_buffer_append_incoming(sock_buf, (uint8_t*)data, bytes) == EXIT_FAILURE)
+        return EXIT_FAILURE;
 
     // additionally, process it and print it to the screen
     text_message txt_msg;
     if (pipe_incoming_to_message(sock_buf, &txt_msg) != 0)
-        return -1;
+        return EXIT_FAILURE;
 
     pipe_message_to_stdout(&txt_msg);
     

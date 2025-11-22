@@ -101,6 +101,8 @@ int poll_list_free(poll_list* plist) {
         socket_close(plist->fds[i].fd);
     }
     free(plist->fds);
+    plist->fds = NULL;
+
     plist->capacity = 0;
     plist->size = 0;
 

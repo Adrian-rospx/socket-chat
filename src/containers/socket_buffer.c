@@ -133,6 +133,9 @@ int socket_buffer_free(socket_buffer* s_buf) {
     free(s_buf->incoming_buffer);
     free(s_buf->outgoing_buffer);
 
+    s_buf->outgoing_buffer = NULL;
+    s_buf->incoming_buffer = NULL;
+
     s_buf->outgoing_length = 0;
     s_buf->outgoing_capacity = 0;
     s_buf->incoming_length = 0;

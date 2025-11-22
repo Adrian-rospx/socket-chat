@@ -107,6 +107,7 @@ int sockbuf_list_free(sockbuf_list* sbuf_l) {
         socket_buffer_free(&sbuf_l->bufs[i]);
     }
     free(sbuf_l->bufs);
+    sbuf_l->bufs = NULL;
     
     sbuf_l->size = 0;
     sbuf_l->capacity = 0;
