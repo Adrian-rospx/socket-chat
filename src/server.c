@@ -1,4 +1,3 @@
-#include <WinSock2.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
@@ -26,7 +25,7 @@ int server_event_loop(poll_list* p_list, sockbuf_list* sbuf_list) {
 
     // check for socket errors or disconnects
     if (server_event & (POLLERR | POLLHUP | POLLNVAL)) {
-        log_error("socket error or disconnect detected. Exiting...");
+        log_error("socket error or disconnect detected. Disconnecting socket...");
         return 3;
     }
     // server recieve -> connect user

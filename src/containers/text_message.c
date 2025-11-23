@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "containers/test_message.h"
+#include "containers/text_message.h"
 #include "utils/logging.h"
 
 int text_message_init(text_message* msg, const uint8_t* text, const size_t length) {

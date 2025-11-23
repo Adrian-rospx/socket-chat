@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "os_networking.h"
+#include "utils/logging.h"
 
 #include "containers/socket_buffer.h"
 
@@ -16,13 +17,13 @@ int socket_buffer_init(socket_buffer* s_buf, const socket_t fd) {
 
     s_buf->incoming_buffer = (uint8_t*)malloc(sizeof(uint8_t*) * DEF_S_BUF_ALLOC);
     if (s_buf->incoming_buffer == NULL) {
-        fputs("Error: failed to allocate socket io buffer", stderr);
+        log_error("failed to allocate socket io buffer");
         return EXIT_FAILURE;
     }
 
     s_buf->outgoing_buffer = (uint8_t*)malloc(sizeof(uint8_t) * DEF_S_BUF_ALLOC);
     if (s_buf->outgoing_buffer == NULL) {
-        fputs("Error: failed to allocate socket io buffer", stderr);
+        log_error("failed to allocate socket io buffer");
         return EXIT_FAILURE;
     }
 
@@ -48,7 +49,7 @@ int socket_buffer_queue_outgoing(socket_buffer* s_buf, uint8_t* data, size_t len
             sizeof (uint8_t) * new_cap);
 
         if (temp_ptr == NULL) {
-            fputs("Error: failed to reallocate socket io buffer", stderr);
+            log_error("failed to reallocate socket io buffer");
             return EXIT_FAILURE;
         }
 
@@ -80,7 +81,7 @@ int socket_buffer_deque_outgoing(socket_buffer* s_buf, ssize_t bytes) {
             sizeof(uint8_t) * temp_cap);
 
         if (temp_ptr == NULL) {
-            fputs("Error: failed to reallocate socket io buffer", stderr);
+            log_error("failed to reallocate socket io buffer");
             return EXIT_FAILURE;
         }
 
@@ -103,7 +104,7 @@ int socket_buffer_append_incoming(socket_buffer* s_buf, uint8_t* data, size_t le
             sizeof (uint8_t) * new_cap);
 
         if (temp_ptr == NULL) {
-            fputs("Error: failed to reallocate socket io buffer", stderr);
+            log_error("failed to reallocate socket io buffer");
             return EXIT_FAILURE;
         }
 

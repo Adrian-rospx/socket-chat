@@ -3,16 +3,23 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "containers/sockbuf_list.h"
 #include "os_networking.h"
 
 #include "containers/socket_buffer.h"
 #include "containers/poll_list.h"
-#include "containers/test_message.h"
+#include "containers/text_message.h"
 #include "events/data_pipes.h"
 #include "utils/logging.h"
 
-int client_stdin_event(socket_buffer* sock_buf, poll_list* p_list) {
+int client_stdin_event(sockbuf_list* sbuf_list, poll_list* p_list, socket_t fd) {
     char message[1024];
+
+    socket_buffer* sock_buf = sockbuf_list_get(sbuf_list, fd);
+    if (sock_buf == NULL) {
+        log_error("Could not find socket buffer");
+        return EXIT_FAILURE;
+    }
 
     ssize_t bytes = read(STDIN_FILENO, message,
         sizeof(message)-1);
@@ -40,12 +47,17 @@ int client_stdin_event(socket_buffer* sock_buf, poll_list* p_list) {
     socket_buffer_append_incoming(sock_buf, (uint8_t*)message, message_length);
     
     text_message txt_msg;
-    if (pipe_incoming_to_message(sock_buf, &txt_msg) == EXIT_FAILURE)
+    if (pipe_incoming_to_message(sock_buf, &txt_msg) == EXIT_FAILURE) {
+        text_message_free(&txt_msg);
         return EXIT_FAILURE;
+    }
 
-    if (pipe_message_to_outgoing(sock_buf, p_list, &txt_msg) == EXIT_FAILURE)
+    if (pipe_message_to_outgoing(sbuf_list, p_list, fd, &txt_msg) == EXIT_FAILURE) {
+        text_message_free(&txt_msg);
         return EXIT_FAILURE;
+    }
 
+    text_message_free(&txt_msg);
     return 0;
 }
 
@@ -54,7 +66,7 @@ int client_write_event(socket_buffer* sock_buf, poll_list* p_list) {
         return 2;
 
     ssize_t bytes_sent = send(sock_buf->fd, sock_buf->outgoing_buffer,
-        sock_buf->outgoing_length, 0); 
+        sock_buf->outgoing_length, 0);
 
     if (bytes_sent == -1) {
         log_network_error("Send error");

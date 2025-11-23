@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "containers/test_message.h"
+#include "containers/text_message.h"
 #include "os_networking.h"
 
 #include "containers/poll_list.h"
@@ -72,12 +72,17 @@ int server_read_event(poll_list* p_list, sockbuf_list* sbuf_list, const socket_t
     // deliver to outgoing, set POLLOUT flag
     text_message txt_msg;
 
-    if (pipe_incoming_to_message(sock_buf, &txt_msg) == EXIT_FAILURE)
+    if (pipe_incoming_to_message(sock_buf, &txt_msg) == EXIT_FAILURE) {
+        text_message_free(&txt_msg);
         return EXIT_FAILURE;
+    }
 
-    if (pipe_message_to_outgoing(sock_buf, p_list, &txt_msg) == EXIT_FAILURE)
+    if (pipe_message_to_all(sbuf_list, p_list, fd, &txt_msg) == EXIT_FAILURE) {
+        text_message_free(&txt_msg);
         return EXIT_FAILURE;
+    }
     
+    text_message_free(&txt_msg);
     return EXIT_SUCCESS;
 }
 

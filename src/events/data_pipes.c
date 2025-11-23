@@ -4,11 +4,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "containers/sockbuf_list.h"
 #include "os_networking.h"
 
 #include "containers/poll_list.h"
 #include "containers/socket_buffer.h"
-#include "containers/test_message.h"
+#include "containers/text_message.h"
 #include "utils/logging.h"
 
 int pipe_incoming_to_message(socket_buffer* sock_buf, text_message* txt_msg) {
@@ -32,7 +33,7 @@ int pipe_incoming_to_message(socket_buffer* sock_buf, text_message* txt_msg) {
     if (sock_buf->has_length && sock_buf->incoming_length >= sock_buf->exp_msg_len) {
 
         if (text_message_init(txt_msg, sock_buf->incoming_buffer, 
-            sock_buf->exp_msg_len) == -1)
+            sock_buf->exp_msg_len) == EXIT_FAILURE)
             return EXIT_FAILURE;
 
         // remove message from buffer
@@ -56,11 +57,14 @@ int pipe_message_to_stdout(text_message* txt_msg) {
     return EXIT_SUCCESS;
 }
 
-int pipe_message_to_outgoing(socket_buffer* sock_buf, poll_list* p_list, 
-    text_message* txt_msg) {
+int pipe_message_to_outgoing(sockbuf_list* sbuf_list, poll_list* p_list, 
+    socket_t fd, text_message* txt_msg) {
     if (txt_msg->length == 0)
         return 2;
     
+    socket_buffer* sock_buf = sockbuf_list_get(sbuf_list, fd);
+    pollfd* pfd = poll_list_get(p_list, fd);
+
     const size_t length = txt_msg->length;
     
     // process message
@@ -87,7 +91,6 @@ int pipe_message_to_outgoing(socket_buffer* sock_buf, poll_list* p_list,
     msg_ptr = NULL;
     
     // add pollout flag to events
-    struct pollfd* pfd = poll_list_get(p_list, sock_buf->fd);
     if (pfd == NULL) {
         log_error("Could not get poll list element");
         return EXIT_FAILURE;
@@ -95,6 +98,18 @@ int pipe_message_to_outgoing(socket_buffer* sock_buf, poll_list* p_list,
 
     fputs("POLLOUT set\n", stdout);
     pfd->events |= POLLOUT;
+
+    return EXIT_SUCCESS;
+}
+
+int pipe_message_to_all(sockbuf_list* sbuf_list, poll_list* p_list, 
+    socket_t fd, text_message* txt_msg) {
+
+    for (size_t i = 0; i < sbuf_list->size; i++) {
+        if (pipe_message_to_outgoing(sbuf_list, p_list, 
+            sbuf_list->bufs[i].fd, txt_msg) == EXIT_FAILURE)
+            return EXIT_FAILURE;
+    }
 
     return EXIT_SUCCESS;
 }
