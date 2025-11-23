@@ -9,6 +9,7 @@
 #include "containers/poll_list.h"
 #include "containers/socket_buffer.h"
 #include "containers/test_message.h"
+#include "utils/logging.h"
 
 int pipe_incoming_to_message(socket_buffer* sock_buf, text_message* txt_msg) {
     // process new data
@@ -32,13 +33,13 @@ int pipe_incoming_to_message(socket_buffer* sock_buf, text_message* txt_msg) {
 
         if (text_message_init(txt_msg, sock_buf->incoming_buffer, 
             sock_buf->exp_msg_len) == -1)
-            return -1;
+            return EXIT_FAILURE;
 
         // remove message from buffer
         socket_buffer_deque_incoming(sock_buf, sock_buf->exp_msg_len);
         sock_buf->has_length = 0;
 
-        return 0;
+        return EXIT_SUCCESS;
     }
 
     return 2; // incomplete data
@@ -52,7 +53,7 @@ int pipe_message_to_stdout(text_message* txt_msg) {
 
     fprintf(stdout, "[server]: %.*s\n", (int)length, txt_msg->buffer);
 
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 int pipe_message_to_outgoing(socket_buffer* sock_buf, poll_list* p_list, 
@@ -65,8 +66,8 @@ int pipe_message_to_outgoing(socket_buffer* sock_buf, poll_list* p_list,
     // process message
     uint8_t* msg_ptr = malloc(length * sizeof(uint8_t));
     if (msg_ptr == NULL) {
-        fputs("Error: couldn't allocate message memory\n", stderr);
-        return -1;
+        log_error("Couldn't allocate message memory");
+        return EXIT_FAILURE;
     }
 
     // copy message bytes
@@ -83,16 +84,17 @@ int pipe_message_to_outgoing(socket_buffer* sock_buf, poll_list* p_list,
         length, (int)length, msg_ptr);
 
     free(msg_ptr);
+    msg_ptr = NULL;
     
     // add pollout flag to events
     struct pollfd* pfd = poll_list_get(p_list, sock_buf->fd);
     if (pfd == NULL) {
-        fputs("Error: could not get poll list element\n", stderr);
-        return -1;
+        log_error("Could not get poll list element");
+        return EXIT_FAILURE;
     }
 
     fputs("POLLOUT set\n", stdout);
     pfd->events |= POLLOUT;
 
-    return 0;
+    return EXIT_SUCCESS;
 }

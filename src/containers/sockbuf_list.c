@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 #include "containers/socket_buffer.h"
+#include "utils/logging.h"
 
 #include "containers/sockbuf_list.h"
 
@@ -13,14 +14,14 @@ int sockbuf_list_init(sockbuf_list* sbuf_l) {
         DEF_SOCKBUF_LIST_ALLOC);
     
     if (sbuf_l->bufs == NULL) {
-        fputs("Error: could not allocate socket buffer list memory\n", stderr);
-        return -1;
+        log_error("Could not allocate socket buffer list memory");
+        return EXIT_FAILURE;
     }
 
     sbuf_l->size = 0;
     sbuf_l->capacity = 1;
 
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 socket_buffer* sockbuf_list_get(const sockbuf_list* sbuf_l, const socket_t fd) {
@@ -44,20 +45,20 @@ int sockbuf_list_append(sockbuf_list* sbuf_l, const socket_t fd) {
             new_cap * sizeof(socket_buffer));
 
         if (temp_ptr == NULL) {
-            fputs("Error: Socket buffer list allocation failed\n", stderr);
-            return -1;
+            log_error("Socket buffer list allocation failed");
+            return EXIT_FAILURE;
         }
 
         sbuf_l->bufs = temp_ptr;
         sbuf_l->capacity = new_cap;
     }
 
-    if (socket_buffer_init(&sbuf_l->bufs[sbuf_l->size], fd) == -1)
-        return -1;
+    if (socket_buffer_init(&sbuf_l->bufs[sbuf_l->size], fd) == EXIT_FAILURE)
+        return EXIT_FAILURE;
 
     sbuf_l->size = new_length;
 
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 int sockbuf_list_remove(sockbuf_list* sbuf_l, const socket_t fd) {
@@ -70,8 +71,8 @@ int sockbuf_list_remove(sockbuf_list* sbuf_l, const socket_t fd) {
         }
     }
     if (index == -1) {
-        fputs("Error: file descriptor not found\n", stderr);
-        return -1;
+        log_error("File descriptor not found");
+        return EXIT_FAILURE;
     }
 
     // move element to the end
@@ -92,14 +93,14 @@ int sockbuf_list_remove(sockbuf_list* sbuf_l, const socket_t fd) {
             sizeof(socket_buffer) * new_cap);
 
         if (temp_ptr == NULL) {
-            fputs("Error: couldn't reallocate socket buffer list memory\n", stderr);
-            return -1;
+            log_error("Couldn't reallocate socket buffer list memory");
+            return EXIT_FAILURE;
         }
 
         sbuf_l->bufs = temp_ptr;
         sbuf_l->capacity = new_cap;
     }
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 int sockbuf_list_free(sockbuf_list* sbuf_l) {
@@ -112,5 +113,5 @@ int sockbuf_list_free(sockbuf_list* sbuf_l) {
     sbuf_l->size = 0;
     sbuf_l->capacity = 0;
 
-    return 0;
+    return EXIT_SUCCESS;
 }

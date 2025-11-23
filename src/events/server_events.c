@@ -1,3 +1,6 @@
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "containers/test_message.h"
 #include "os_networking.h"
 
@@ -6,8 +9,6 @@
 #include "events/data_pipes.h"
 #include "utils/logging.h"
 #include "utils/socket_commands.h"
-#include <stdio.h>
-#include <stdlib.h>
 
 int server_connect_event(poll_list* p_list, sockbuf_list* sbuf_list) {
     fputs("Connect event\n", stdout);

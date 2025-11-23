@@ -4,20 +4,21 @@
 
 #include "containers/poll_list.h"
 #include "os_networking.h"
+#include "utils/logging.h"
 
 #define DEF_POLL_LIST_ALLOC 4
 
 int poll_list_init(poll_list* plist) {
     plist->fds = (pollfd*)malloc(sizeof(pollfd) * DEF_POLL_LIST_ALLOC);
     if (plist->fds == NULL) {
-        fputs("Error: malloc fail\n", stderr);
-        return -1;
+        log_error("Malloc fail");
+        return EXIT_FAILURE;
     }
 
     plist->size = 0;
     plist->capacity = DEF_POLL_LIST_ALLOC;
 
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 int poll_list_add(poll_list* plist, const socket_t fd, const short events) {
@@ -26,8 +27,8 @@ int poll_list_add(poll_list* plist, const socket_t fd, const short events) {
         pollfd* temp = (pollfd*)realloc(plist->fds,
             sizeof(pollfd) * (plist->capacity + DEF_POLL_LIST_ALLOC));
         if (temp == NULL) {
-            fputs("Error: realloc add fail\n", stderr);
-            return -1;
+            log_error("Realloc add fail");
+            return EXIT_FAILURE;
         }
 
         plist->fds = temp;
@@ -40,7 +41,7 @@ int poll_list_add(poll_list* plist, const socket_t fd, const short events) {
     plist->fds[plist->size] = new_fd;
     plist->size++;
 
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 /* Get the pollfd type at the specified fd in the poll list */
@@ -49,8 +50,8 @@ pollfd* poll_list_get(poll_list* plist, const socket_t fd) {
         if (plist->fds[i].fd == fd) 
             return &plist->fds[i];
     }
-    return NULL;
 
+    return NULL;
 }
 
 int poll_list_remove(poll_list* plist, const socket_t fd) {
@@ -64,7 +65,7 @@ int poll_list_remove(poll_list* plist, const socket_t fd) {
     }
     
     if (index == -1) {
-        fputs("Error: file descriptor not found\n", stderr);
+        log_error("File descriptor not found");
         return -1;
     }
     
@@ -85,7 +86,7 @@ int poll_list_remove(poll_list* plist, const socket_t fd) {
         pollfd* temp_ptr = realloc(plist->fds, sizeof(pollfd) * new_cap);
 
         if (temp_ptr == NULL) {
-            fputs("Error: couldn't realloc poll list memory\n", stderr);
+            log_error("Couldn't realloc poll list memory");
             return -1;
         }
 

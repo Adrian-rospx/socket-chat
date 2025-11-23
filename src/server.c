@@ -1,3 +1,4 @@
+#include <WinSock2.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,6 +9,7 @@
 #include "containers/poll_list.h"
 #include "containers/sockbuf_list.h"
 #include "events/server_events.h"
+#include "utils/logging.h"
 #include "utils/socket_commands.h"
 
 #include "server.h"
@@ -17,14 +19,14 @@ int server_event_loop(poll_list* p_list, sockbuf_list* sbuf_list) {
     const int ret = poll(p_list->fds, p_list->size, -1);
 
     if (ret < 0) {
-        perror("Poll failed");
+        log_network_error("Poll failed");
         return EXIT_FAILURE;
     }
     const unsigned short server_event = p_list->fds[0].revents;
 
     // check for socket errors or disconnects
     if (server_event & (POLLERR | POLLHUP | POLLNVAL)) {
-        fputs("Error: socket error or disconnect detected. Exiting...\n", stderr);
+        log_error("socket error or disconnect detected. Exiting...");
         return 3;
     }
     // server recieve -> connect user
@@ -37,6 +39,15 @@ int server_event_loop(poll_list* p_list, sockbuf_list* sbuf_list) {
 
         const unsigned short client_event = p_list->fds[i].revents;
         const socket_t fd = p_list->fds[i].fd;
+
+        // handle socket errors
+        if (client_event & (POLLERR | POLLNVAL | POLLHUP)) {
+            poll_list_remove(p_list, fd);
+            sockbuf_list_remove(sbuf_list, fd);
+            
+            log_error("socket error or disconnect at fd #%d. Exiting...", fd);
+            continue;
+        }
 
         // client read -> receive data
         if (client_event & POLLIN) {
@@ -74,6 +85,7 @@ int run_server(const unsigned short port) {
     // event loop implementation
     while (1) {
         const int status = server_event_loop(&p_list, &sbuf_list);
+
         if (status == EXIT_FAILURE) 
             continue;
         else if (status == 3)

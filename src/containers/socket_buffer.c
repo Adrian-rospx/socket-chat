@@ -17,13 +17,13 @@ int socket_buffer_init(socket_buffer* s_buf, const socket_t fd) {
     s_buf->incoming_buffer = (uint8_t*)malloc(sizeof(uint8_t*) * DEF_S_BUF_ALLOC);
     if (s_buf->incoming_buffer == NULL) {
         fputs("Error: failed to allocate socket io buffer", stderr);
-        return -1;
+        return EXIT_FAILURE;
     }
 
     s_buf->outgoing_buffer = (uint8_t*)malloc(sizeof(uint8_t) * DEF_S_BUF_ALLOC);
     if (s_buf->outgoing_buffer == NULL) {
         fputs("Error: failed to allocate socket io buffer", stderr);
-        return -1;
+        return EXIT_FAILURE;
     }
 
     s_buf->incoming_capacity = DEF_S_BUF_ALLOC;
@@ -32,7 +32,7 @@ int socket_buffer_init(socket_buffer* s_buf, const socket_t fd) {
     s_buf->incoming_length = 0;
     s_buf->outgoing_length = 0;
 
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 int socket_buffer_queue_outgoing(socket_buffer* s_buf, uint8_t* data, size_t length) {
@@ -49,7 +49,7 @@ int socket_buffer_queue_outgoing(socket_buffer* s_buf, uint8_t* data, size_t len
 
         if (temp_ptr == NULL) {
             fputs("Error: failed to reallocate socket io buffer", stderr);
-            return -1;
+            return EXIT_FAILURE;
         }
 
         s_buf->outgoing_buffer = temp_ptr;
@@ -61,7 +61,7 @@ int socket_buffer_queue_outgoing(socket_buffer* s_buf, uint8_t* data, size_t len
         data, length);
 
     s_buf->outgoing_length = new_length;
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 int socket_buffer_deque_outgoing(socket_buffer* s_buf, ssize_t bytes) {
@@ -81,13 +81,13 @@ int socket_buffer_deque_outgoing(socket_buffer* s_buf, ssize_t bytes) {
 
         if (temp_ptr == NULL) {
             fputs("Error: failed to reallocate socket io buffer", stderr);
-            return -1;
+            return EXIT_FAILURE;
         }
 
         s_buf->outgoing_buffer = temp_ptr;
         s_buf->outgoing_capacity = temp_cap;
     }
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 int socket_buffer_append_incoming(socket_buffer* s_buf, uint8_t* data, size_t length) {
@@ -104,7 +104,7 @@ int socket_buffer_append_incoming(socket_buffer* s_buf, uint8_t* data, size_t le
 
         if (temp_ptr == NULL) {
             fputs("Error: failed to reallocate socket io buffer", stderr);
-            return -1;
+            return EXIT_FAILURE;
         }
 
         s_buf->outgoing_buffer = temp_ptr;
@@ -116,7 +116,7 @@ int socket_buffer_append_incoming(socket_buffer* s_buf, uint8_t* data, size_t le
         data, length);
     s_buf->incoming_length = new_length;
 
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 int socket_buffer_deque_incoming(socket_buffer* s_buf, ssize_t bytes) {
@@ -126,7 +126,7 @@ int socket_buffer_deque_incoming(socket_buffer* s_buf, ssize_t bytes) {
     
     s_buf->incoming_length -= bytes;
     
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 int socket_buffer_free(socket_buffer* s_buf) {
@@ -141,5 +141,5 @@ int socket_buffer_free(socket_buffer* s_buf) {
     s_buf->incoming_length = 0;
     s_buf->incoming_capacity = 0;
 
-    return 0;
+    return EXIT_SUCCESS;
 }
