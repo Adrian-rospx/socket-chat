@@ -47,11 +47,11 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     # sanitizer
     # for windows: clang requires the asan dll libraries! 
     target_compile_options(SocketChat PRIVATE
-        -fsanitize=address
+        -fsanitize=address,undefined
         -fno-omit-frame-pointer
     )
     target_link_options(SocketChat PRIVATE
-        -fsanitize=address
+        -fsanitize=address,undefined
         -fno-omit-frame-pointer
     )
 

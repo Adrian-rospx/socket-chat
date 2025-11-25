@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "os_networking.h"
@@ -26,7 +27,6 @@ int client_event_loop(sockbuf_list* sbuf_l, poll_list* p_list) {
 
     const unsigned short local_client_event = p_list->fds[0].revents;
     const unsigned short server_event = p_list->fds[1].revents;
-    const socket_t local_fd = p_list->fds[0].fd;
     const socket_t server_fd = p_list->fds[1].fd;
 
     // check for socket errors or disconnects
@@ -66,15 +66,20 @@ int run_client (const unsigned short server_port, const char* ip_address) {
 
     // setup polling
     poll_list p_list;
+
     if (poll_list_init(&p_list) == EXIT_FAILURE)
         return EXIT_FAILURE;
 
     poll_list_add(&p_list, STDIN_FILENO, POLLIN);
     poll_list_add(&p_list, server_fd, POLLIN | POLLOUT);
 
-    // setup io buffer
+    // setup socket buffer
     sockbuf_list sbuf_list;
-    sockbuf_list_init(&sbuf_list);
+
+    if (sockbuf_list_init(&sbuf_list) == EXIT_FAILURE) {
+        poll_list_free(&p_list);
+        return EXIT_FAILURE;
+    }
     sockbuf_list_append(&sbuf_list, server_fd);
 
     while (1) {

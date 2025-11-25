@@ -15,13 +15,13 @@ int socket_buffer_init(socket_buffer* s_buf, const socket_t fd) {
     s_buf->fd = fd;
     s_buf->has_length = 0;
 
-    s_buf->incoming_buffer = (uint8_t*)malloc(sizeof(uint8_t*) * DEF_S_BUF_ALLOC);
+    s_buf->incoming_buffer = malloc(sizeof(uint8_t) * DEF_S_BUF_ALLOC);
     if (s_buf->incoming_buffer == NULL) {
         log_error("failed to allocate socket io buffer");
         return EXIT_FAILURE;
     }
 
-    s_buf->outgoing_buffer = (uint8_t*)malloc(sizeof(uint8_t) * DEF_S_BUF_ALLOC);
+    s_buf->outgoing_buffer = malloc(sizeof(uint8_t) * DEF_S_BUF_ALLOC);
     if (s_buf->outgoing_buffer == NULL) {
         log_error("failed to allocate socket io buffer");
         return EXIT_FAILURE;
@@ -42,8 +42,8 @@ int socket_buffer_queue_outgoing(socket_buffer* s_buf, uint8_t* data, size_t len
     // grow if needed
     if (new_length > s_buf->outgoing_capacity) {
         const size_t new_cap = 
-            ((new_length) / DEF_S_BUF_ALLOC + 1) 
-            * s_buf->outgoing_capacity;
+            (new_length / DEF_S_BUF_ALLOC + 1) 
+            * DEF_S_BUF_ALLOC;
 
         uint8_t* temp_ptr = realloc(s_buf->outgoing_buffer,
             sizeof (uint8_t) * new_cap);
@@ -97,10 +97,10 @@ int socket_buffer_append_incoming(socket_buffer* s_buf, uint8_t* data, size_t le
     // resize if necessary
     if (new_length > s_buf->incoming_capacity) {
         const size_t new_cap = 
-            ((new_length) / DEF_S_BUF_ALLOC + 1) 
+            (new_length / DEF_S_BUF_ALLOC + 1) 
             * s_buf->incoming_capacity;
 
-        uint8_t* temp_ptr = realloc(s_buf->outgoing_buffer,
+        uint8_t* temp_ptr = realloc(s_buf->incoming_buffer,
             sizeof (uint8_t) * new_cap);
 
         if (temp_ptr == NULL) {
@@ -108,7 +108,7 @@ int socket_buffer_append_incoming(socket_buffer* s_buf, uint8_t* data, size_t le
             return EXIT_FAILURE;
         }
 
-        s_buf->outgoing_buffer = temp_ptr;
+        s_buf->incoming_buffer = temp_ptr;
         s_buf->incoming_capacity = new_cap;
     }
     
