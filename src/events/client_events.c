@@ -12,8 +12,10 @@
 #include "events/data_pipes.h"
 #include "utils/logging.h"
 
+#define RECV_BUFFER_SIZE 1024
+
 int client_stdin_event(sockbuf_list* sbuf_list, poll_list* p_list, socket_t fd) {
-    char message[1024];
+    char message[RECV_BUFFER_SIZE];
 
     socket_buffer* sock_buf = sockbuf_list_get(sbuf_list, fd);
     if (sock_buf == NULL) {
@@ -46,7 +48,8 @@ int client_stdin_event(sockbuf_list* sbuf_list, poll_list* p_list, socket_t fd) 
     socket_buffer_append_incoming(sock_buf, (uint8_t*)&netlen, sizeof(uint32_t));
     socket_buffer_append_incoming(sock_buf, (uint8_t*)message, message_length);
     
-    text_message txt_msg;
+    text_message txt_msg = {0};
+
     if (pipe_incoming_to_message(sock_buf, &txt_msg) == EXIT_FAILURE) {
         text_message_free(&txt_msg);
         return EXIT_FAILURE;
@@ -89,7 +92,7 @@ int client_write_event(socket_buffer* sock_buf, poll_list* p_list) {
 }
 
 int client_read_event(socket_buffer* sock_buf) {
-    char data[1024];
+    char data[RECV_BUFFER_SIZE];
 
     ssize_t bytes = recv(sock_buf->fd, data, sizeof(data) - 1, 0);
             
@@ -109,7 +112,8 @@ int client_read_event(socket_buffer* sock_buf) {
         return EXIT_FAILURE;
 
     // additionally, process it and print it to the screen
-    text_message txt_msg;
+    text_message txt_msg = {0};
+
     if (pipe_incoming_to_message(sock_buf, &txt_msg) != 0) {
         if (txt_msg.capacity > 0) {
             text_message_free(&txt_msg);
