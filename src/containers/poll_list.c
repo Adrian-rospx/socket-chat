@@ -3,7 +3,6 @@
 #include <stdlib.h>
 
 #include "containers/poll_list.h"
-#include "os_networking.h"
 #include "utils/logging.h"
 
 #define DEF_POLL_LIST_ALLOC 4

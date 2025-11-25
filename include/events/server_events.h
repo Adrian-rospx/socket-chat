@@ -1,7 +1,7 @@
 #ifndef SERVER_EVENTS_H
 #define SERVER_EVENTS_H
 
-#include "os_networking.h"
+#include "networking/os_networking.h"
 
 #include "containers/poll_list.h"
 #include "containers/sockbuf_list.h"

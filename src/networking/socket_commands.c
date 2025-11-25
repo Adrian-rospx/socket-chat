@@ -3,10 +3,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "os_networking.h"
+#include "networking/os_networking.h"
+#include "networking/socket_commands.h"
 #include "utils/logging.h"
-
-#include "utils/socket_commands.h"
 
 #define MAX_SERVER_CONNECTIONS 32
 

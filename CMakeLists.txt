@@ -16,15 +16,19 @@ target_sources(SocketChat
         src/main.c
         src/server.c
         src/client.c
+        
         src/containers/poll_list.c
         src/containers/socket_buffer.c
         src/containers/sockbuf_list.c
         src/containers/text_message.c
-        src/utils/socket_commands.c
-        src/utils/logging.c
-        src/events/data_pipes.c
+
+        src/networking/socket_commands.c
+        src/networking/data_pipes.c
+        
         src/events/client_events.c
         src/events/server_events.c
+        
+        src/utils/logging.c
 )
 target_include_directories(SocketChat PRIVATE include)
 

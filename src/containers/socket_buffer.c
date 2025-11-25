@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "os_networking.h"
 #include "utils/logging.h"
 
 #include "containers/socket_buffer.h"

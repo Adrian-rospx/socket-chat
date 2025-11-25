@@ -4,7 +4,8 @@
 #include "containers/sockbuf_list.h"
 #include "containers/socket_buffer.h"
 #include "containers/text_message.h"
-#include "os_networking.h"
+
+#include "networking/os_networking.h"
 
 /*  Process incoming buffer data to create
     complete messages

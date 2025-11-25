@@ -1,7 +1,7 @@
 #ifndef POLL_LIST_H
 #define POLL_LIST_H
 
-#include "os_networking.h"
+#include "networking/os_networking.h"
 
 /* Dynamic array of pollfd data types */
 typedef struct {

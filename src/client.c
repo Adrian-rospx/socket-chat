@@ -1,10 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "os_networking.h"
-
+#include "networking/os_networking.h"
+#include "networking/socket_commands.h"
 #include "utils/logging.h"
-#include "utils/socket_commands.h"
 #include "containers/poll_list.h"
 #include "containers/sockbuf_list.h"
 #include "events/client_events.h"

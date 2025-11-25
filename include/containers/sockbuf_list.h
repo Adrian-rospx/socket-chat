@@ -1,7 +1,7 @@
 #ifndef SOCKBUF_LIST_H
 #define SOCKBUF_LIST_H
 
-#include "os_networking.h"
+#include "networking/os_networking.h"
 #include "containers/socket_buffer.h"
 
 /* Dynamic array (list) of socket buffer types */

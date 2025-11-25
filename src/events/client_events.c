@@ -3,13 +3,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "containers/sockbuf_list.h"
-#include "os_networking.h"
+#include "networking/os_networking.h"
 
+#include "containers/sockbuf_list.h"
 #include "containers/socket_buffer.h"
 #include "containers/poll_list.h"
 #include "containers/text_message.h"
-#include "events/data_pipes.h"
+#include "networking/data_pipes.h"
 #include "utils/logging.h"
 
 #define RECV_BUFFER_SIZE 1024

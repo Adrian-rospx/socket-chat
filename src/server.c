@@ -3,13 +3,13 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "os_networking.h"
+#include "networking/os_networking.h"
+#include "networking/socket_commands.h"
 
 #include "containers/poll_list.h"
 #include "containers/sockbuf_list.h"
 #include "events/server_events.h"
 #include "utils/logging.h"
-#include "utils/socket_commands.h"
 
 #include "server.h"
 

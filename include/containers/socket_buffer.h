@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 #include "containers/poll_list.h"
-#include "os_networking.h"
+#include "networking/os_networking.h"
 
 // byte buffer for async io operations
 typedef struct {

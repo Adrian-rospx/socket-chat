@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#include "os_networking.h"
+#include "networking/os_networking.h"
 
 #define ANSI_BLACK          "\e[30m"
 #define ANSI_CYAN           "\e[36m"

@@ -1,7 +1,7 @@
 #ifndef NETWORK_H
 #define NETWORK_H
 
-#include "os_networking.h"
+#include "networking/os_networking.h"
 
 typedef struct sockaddr_in sockaddr_in;
 typedef struct sockaddr sockaddr;
