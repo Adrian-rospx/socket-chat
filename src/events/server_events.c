@@ -13,7 +13,7 @@
 #define RECV_BUFFER_SIZE 1024
 
 int server_connect_event(poll_list* p_list, sockbuf_list* sbuf_list) {
-    fputs("Connect event\n", stdout);
+    log_event("Connect event");
 
     const socket_t server_fd = p_list->fds[0].fd;
 
@@ -43,14 +43,14 @@ int server_read_event(poll_list* p_list, sockbuf_list* sbuf_list, const socket_t
         return EXIT_FAILURE;
     }
     
-    fputs("Read event\n", stdout);
+    log_event("Read event");
     
     // read data
     uint8_t data[RECV_BUFFER_SIZE];
     ssize_t bytes_recieved = recv(fd, data, sizeof(data) - 1, 0);
     data[bytes_recieved] = '\0';
 
-    fprintf(stdout, "Bytes recieved: %ld\n", bytes_recieved);
+    log_extra_info("Bytes recieved: %ld", bytes_recieved);
     
     if (bytes_recieved <= 0) {
         // handle disconnection or error
@@ -103,7 +103,7 @@ int server_write_event(sockbuf_list* sbuf_list, poll_list* p_list, const socket_
     if (sock_buf->outgoing_length == 0)
         return 2;
 
-    fputs("Write event\n", stdout);
+    log_event("Write event");
 
     // send as many bytes as possible
     ssize_t bytes_sent = send(fd, sock_buf->outgoing_buffer,
@@ -113,7 +113,7 @@ int server_write_event(sockbuf_list* sbuf_list, poll_list* p_list, const socket_
         log_network_error("Send error");
         return EXIT_FAILURE;
     }
-    fprintf(stdout, "Bytes written: %ld\n", bytes_sent);
+    log_extra_info("Bytes written: %ld", bytes_sent);
 
     // remove sent bytes
     if (socket_buffer_deque_outgoing(sock_buf, bytes_sent))
@@ -123,7 +123,7 @@ int server_write_event(sockbuf_list* sbuf_list, poll_list* p_list, const socket_
     if (sock_buf->outgoing_length == 0) {
         pfd->events &= ~POLLOUT;
 
-        fputs("POLLOUT reset\n", stdout);
+        log_extra_info("POLLOUT reset");
     }
 
     return EXIT_SUCCESS;

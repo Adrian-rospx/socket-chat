@@ -33,13 +33,13 @@ int client_stdin_event(sockbuf_list* sbuf_list, poll_list* p_list, socket_t fd) 
         log_network_error("Read stdin error");
         return EXIT_FAILURE;
     }
-    fputs("Stdin event\n", stdout);
+    log_event("Stdin event");
 
     message[bytes] = '\0';
     if (message[bytes - 1] == '\n')
         message[bytes - 1] = '\0';
 
-    fprintf(stdout, "Message sent: %s\n", message);
+    log_extra_info("Message sent: %s", message);
 
     uint32_t message_length = strlen(message);
     uint32_t netlen = htonl(message_length);
@@ -77,7 +77,7 @@ int client_write_event(socket_buffer* sock_buf, poll_list* p_list) {
         log_network_error("Send error");
         return EXIT_FAILURE;
     }
-    fputs("Send Event\n", stdout);
+    log_event("Send Event");
 
     if (socket_buffer_deque_outgoing(sock_buf, bytes_sent) == EXIT_FAILURE)
         return EXIT_FAILURE;
@@ -85,7 +85,7 @@ int client_write_event(socket_buffer* sock_buf, poll_list* p_list) {
     // remove the pollout flag when empty
     if (sock_buf->outgoing_length == 0) {
         p_list->fds[1].events &= ~POLLOUT;
-        fputs("POLLOUT reset\n", stdout);
+        log_extra_info("POLLOUT reset");
     }
 
     return 0;
@@ -103,10 +103,10 @@ int client_read_event(socket_buffer* sock_buf) {
         fputs("\nServer closed the connection. Exiting...\n", stderr);
         return 3;
     }
-    fputs("Read event\n", stdout);
+    log_event("Read event");
 
     data[bytes] = '\0';
-    fprintf(stdout, "Recieved %ld bytes from server\n", bytes);
+    log_extra_info("Recieved %ld bytes from server", bytes);
 
     if (socket_buffer_append_incoming(sock_buf, (uint8_t*)data, bytes) == EXIT_FAILURE)
         return EXIT_FAILURE;

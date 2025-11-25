@@ -84,7 +84,7 @@ int pipe_message_to_outgoing(sockbuf_list* sbuf_list, poll_list* p_list,
         sizeof(uint32_t));
     socket_buffer_queue_outgoing(sock_buf, msg_ptr, length);
 
-    fprintf(stdout, "Message passing pipe (length: %ld): %.*s\n", 
+    log_extra_info("Message passing pipe (length: %ld): %.*s", 
         length, (int)length, msg_ptr);
 
     free(msg_ptr);
@@ -96,7 +96,7 @@ int pipe_message_to_outgoing(sockbuf_list* sbuf_list, poll_list* p_list,
         return EXIT_FAILURE;
     }
 
-    fputs("POLLOUT set\n", stdout);
+    log_extra_info("POLLOUT set");
     pfd->events |= POLLOUT;
 
     return EXIT_SUCCESS;

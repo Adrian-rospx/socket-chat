@@ -3,6 +3,8 @@
 
 #include "os_networking.h"
 
+#define ANSI_BLACK          "\e[30m"
+#define ANSI_CYAN           "\e[36m"
 #define ANSI_RED            "\e[31m"
 #define ANSI_RESET_COLOR    "\e[0m"
 
@@ -25,3 +27,19 @@ void log_network_error(const char* error_message) {
     perror(error_message);
 #endif
 } 
+
+void log_extra_info(const char* fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+
+    fprintf(stdout, ANSI_BLACK "[info]: ");
+    vfprintf(stdout, fmt, args);
+    fprintf(stdout, ANSI_RESET_COLOR "\n");
+
+    va_end(args);
+}
+
+void log_event(const char* msg) {
+    fprintf(stdout, 
+        ANSI_CYAN "[event]: %s\n" ANSI_RESET_COLOR, msg);
+}
