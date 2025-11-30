@@ -43,7 +43,7 @@ static inline void socket_close(socket_t fd) {
 }
 
 // wrap nonblocking mode options
-static inline int socket_set_nonblocking(socket_t fd) {
+static inline socket_t socket_set_nonblocking(socket_t fd) {
     #ifdef _WIN32
         u_long mode = 1;
         return ioctlsocket(fd, FIONBIO, &mode);

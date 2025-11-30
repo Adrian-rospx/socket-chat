@@ -30,10 +30,13 @@ int text_message_create(text_message* msg, const uint8_t* text, const size_t len
         return EXIT_FAILURE;
     }
 
-    if (msg->buffer == NULL && length < DEF_MSG_ALLOC) {
+    if (msg->buffer == NULL) {
+        log_warn("Null text message buffer handled");
         if (text_message_init(msg) == EXIT_FAILURE)
             return EXIT_FAILURE;
-    } else {
+    }
+
+    if (length >= DEF_MSG_ALLOC) {
         uint8_t* temp_ptr = realloc(msg->buffer, length);
 
         if (temp_ptr == NULL) {
@@ -52,12 +55,13 @@ int text_message_create(text_message* msg, const uint8_t* text, const size_t len
     return EXIT_SUCCESS;
 }
 
-int text_message_copy(text_message* msg_old, text_message* msg_new) {
-    if (msg_new == NULL) {
+int text_message_copy(text_message* msg_to_create, text_message* msg_to_copy) {
+    if (msg_to_copy == NULL) {
         log_error("New message to copy does not exist");
         return EXIT_FAILURE;
     }
-    return text_message_create(msg_old, msg_new->buffer, msg_new->length);
+    return text_message_create(msg_to_create, 
+                msg_to_copy->buffer, msg_to_copy->length);
 }
 
 int text_message_free(text_message* msg) {

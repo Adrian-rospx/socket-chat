@@ -9,6 +9,9 @@ void log_error(const char* fmt, ...);
 /* Network error logger, accounting for operating system */
 void log_network_error(const char* error_message);
 
+/* Warning logger, displayed yellow */
+void log_warn(const char* fmt, ...);
+
 /* Formatted log for additional information */
 void log_extra_info(const char* fmt, ...);
 

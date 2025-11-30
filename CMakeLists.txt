@@ -21,6 +21,7 @@ target_sources(socketchat
         src/containers/socket_buffer.c
         src/containers/sockbuf_list.c
         src/containers/text_message.c
+        src/containers/thread_queue.c
 
         src/networking/socket_commands.c
         src/networking/data_pipes.c

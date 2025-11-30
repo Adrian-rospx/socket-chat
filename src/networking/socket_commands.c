@@ -99,7 +99,7 @@ int connect_client_to_server(const socket_t socket_fd, const unsigned short serv
         }
 
         if (error != 0) {
-            log_error("connection failed. %s\n", strerror(error));
+            log_error("Connection failed. %s\n", strerror(error));
             socket_close(socket_fd);
             return EXIT_FAILURE;
         }

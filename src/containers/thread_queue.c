@@ -39,8 +39,11 @@ int thread_queue_push(thread_queue* queue, text_message* message_pushed) {
         return EXIT_FAILURE;
     }
 
-    if (text_message_copy(&
-                queue->messages[queue->tail], 
+    // copy pushed item to thread queue
+    text_message_init(&queue->messages[queue->tail]);
+    
+    if (text_message_copy(
+                &queue->messages[queue->tail],
                 message_pushed) == EXIT_FAILURE) {
         // copy failed
         mtx_unlock(&queue->lock);

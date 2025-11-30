@@ -14,57 +14,57 @@
 
 #define RECV_BUFFER_SIZE 1024
 
-int client_stdin_event(sockbuf_list* sbuf_list, poll_list* p_list, socket_t fd) {
-    char message[RECV_BUFFER_SIZE];
+// int client_stdin_event(sockbuf_list* sbuf_list, poll_list* p_list, socket_t fd) {
+//     char message[RECV_BUFFER_SIZE];
 
-    socket_buffer* sock_buf = sockbuf_list_get(sbuf_list, fd);
-    if (sock_buf == NULL) {
-        log_error("Could not find socket buffer");
-        return EXIT_FAILURE;
-    }
+//     socket_buffer* sock_buf = sockbuf_list_get(sbuf_list, fd);
+//     if (sock_buf == NULL) {
+//         log_error("Could not find socket buffer");
+//         return EXIT_FAILURE;
+//     }
 
-    ssize_t bytes = read(STDIN_FILENO, message,
-        sizeof(message)-1);
+//     ssize_t bytes = read(STDIN_FILENO, message,
+//         sizeof(message)-1);
 
-    if (bytes == 0) {
-        log_error("EOF on stdin. Exiting...");
-        return 3;
-    } else if (bytes < 0) {
-        log_network_error("Read stdin error");
-        return EXIT_FAILURE;
-    }
-    log_event("Stdin event");
+//     if (bytes == 0) {
+//         log_error("EOF on stdin. Exiting...");
+//         return 3;
+//     } else if (bytes < 0) {
+//         log_network_error("Read stdin error");
+//         return EXIT_FAILURE;
+//     }
+//     log_event("Stdin event");
 
-    message[bytes] = '\0';
-    if (message[bytes - 1] == '\n')
-        message[bytes - 1] = '\0';
+//     message[bytes] = '\0';
+//     if (message[bytes - 1] == '\n')
+//         message[bytes - 1] = '\0';
 
-    log_extra_info("Message sent: %s", message);
+//     log_extra_info("Message sent: %s", message);
 
-    uint32_t message_length = strlen(message);
-    uint32_t netlen = htonl(message_length);
+//     uint32_t message_length = strlen(message);
+//     uint32_t netlen = htonl(message_length);
 
-    // prepare to write
-    socket_buffer_append_incoming(sock_buf, (uint8_t*)&netlen, sizeof(uint32_t));
-    socket_buffer_append_incoming(sock_buf, (uint8_t*)message, message_length);
+//     // prepare to write
+//     socket_buffer_append_incoming(sock_buf, (uint8_t*)&netlen, sizeof(uint32_t));
+//     socket_buffer_append_incoming(sock_buf, (uint8_t*)message, message_length);
     
-    text_message txt_msg = {0};
+//     text_message txt_msg = {0};
 
-    if (pipe_incoming_to_message(sock_buf, &txt_msg) == EXIT_FAILURE) {
-        text_message_free(&txt_msg);
-        return EXIT_FAILURE;
-    }
+//     if (pipe_incoming_to_message(sock_buf, &txt_msg) == EXIT_FAILURE) {
+//         text_message_free(&txt_msg);
+//         return EXIT_FAILURE;
+//     }
 
-    if (pipe_message_to_outgoing(sbuf_list, p_list, fd, &txt_msg) == EXIT_FAILURE) {
-        text_message_free(&txt_msg);
-        return EXIT_FAILURE;
-    }
+//     if (pipe_message_to_outgoing(sbuf_list, p_list, fd, &txt_msg) == EXIT_FAILURE) {
+//         text_message_free(&txt_msg);
+//         return EXIT_FAILURE;
+//     }
 
-    if (txt_msg.capacity > 0)
-        text_message_free(&txt_msg);
+//     if (txt_msg.capacity > 0)
+//         text_message_free(&txt_msg);
     
-    return 0;
-}
+//     return 0;
+// }
 
 int client_write_event(socket_buffer* sock_buf, poll_list* p_list) {
     if (sock_buf->outgoing_length == 0)
@@ -84,7 +84,7 @@ int client_write_event(socket_buffer* sock_buf, poll_list* p_list) {
 
     // remove the pollout flag when empty
     if (sock_buf->outgoing_length == 0) {
-        p_list->fds[1].events &= ~POLLOUT;
+        p_list->fds[0].events &= ~POLLOUT;
         log_extra_info("POLLOUT reset");
     }
 

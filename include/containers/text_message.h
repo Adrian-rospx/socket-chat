@@ -18,7 +18,7 @@ int text_message_init(text_message* msg);
 int text_message_create(text_message* msg, const uint8_t* text, size_t length);
 
 /* Copy a message into the new container */
-int text_message_copy(text_message* msg_old, text_message* msg_new);
+int text_message_copy(text_message* msg_to_create, text_message* msg_to_copy);
 
 int text_message_free(text_message* msg);
 
