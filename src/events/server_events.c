@@ -12,7 +12,7 @@
 
 #define RECV_BUFFER_SIZE 1024
 
-int server_connect_event(poll_list* p_list, sockbuf_list* sbuf_list) {
+int server_connect_event_handler(poll_list* p_list, sockbuf_list* sbuf_list) {
     log_event("Connect event");
 
     const socket_t server_fd = p_list->fds[0].fd;
@@ -35,7 +35,9 @@ int server_connect_event(poll_list* p_list, sockbuf_list* sbuf_list) {
     return EXIT_SUCCESS;
 }
 
-int server_read_event(poll_list* p_list, sockbuf_list* sbuf_list, const socket_t fd) {
+int read_event_handler(poll_list* p_list, sockbuf_list* sbuf_list, 
+            text_message* msg, const socket_t fd) {
+    pollfd* pfd = poll_list_get(p_list, fd);
     socket_buffer* sock_buf = sockbuf_list_get(sbuf_list, fd);
     
     if (sock_buf == NULL) {
@@ -57,12 +59,12 @@ int server_read_event(poll_list* p_list, sockbuf_list* sbuf_list, const socket_t
         if (bytes_recieved < 0) 
             log_error("Could not read from client");
 
-        fprintf(stdout, "Client disconnected fd = %d\n", (int)fd);
+        fprintf(stdout, "Server/client disconnected fd = %d\n", (int)fd);
         
         poll_list_remove(p_list, fd);
         sockbuf_list_remove(sbuf_list, fd);
 
-        return EXIT_SUCCESS;
+        return EXIT_FAILURE; // exit
     }
     
     // add bytes to incoming
@@ -70,28 +72,19 @@ int server_read_event(poll_list* p_list, sockbuf_list* sbuf_list, const socket_t
         (uint8_t*)data, 
         bytes_recieved) == EXIT_FAILURE)
         return EXIT_FAILURE;
-    // deliver to outgoing, set POLLOUT flag
-    text_message txt_msg = {0};
+        
+    // return text message
+    int status = pipe_incoming_to_message(sock_buf, msg);
 
-    if (pipe_incoming_to_message(sock_buf, &txt_msg) == EXIT_FAILURE) {
-        if (txt_msg.capacity > 0)
-            text_message_free(&txt_msg);
+    if (status == EXIT_SUCCESS)
+        return EXIT_SUCCESS;
+    else if (status == EXIT_FAILURE)
         return EXIT_FAILURE;
-    }
-
-    if (pipe_message_to_all(sbuf_list, p_list, fd, &txt_msg) == EXIT_FAILURE) {
-        if (txt_msg.capacity > 0)
-            text_message_free(&txt_msg);
-        return EXIT_FAILURE;
-    }
-    
-    if (txt_msg.capacity > 0)
-        text_message_free(&txt_msg);
-
-    return EXIT_SUCCESS;
+    else
+        return 2; // incomplete
 }
 
-int server_write_event(sockbuf_list* sbuf_list, poll_list* p_list, const socket_t fd) {
+int write_event_handler(sockbuf_list* sbuf_list, poll_list* p_list, const socket_t fd) {
     socket_buffer* sock_buf = sockbuf_list_get(sbuf_list, fd);
     pollfd* pfd = poll_list_get(p_list, fd);
 

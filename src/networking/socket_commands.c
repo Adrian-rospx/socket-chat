@@ -9,6 +9,8 @@
 
 #define MAX_SERVER_CONNECTIONS 32
 
+#define CONNECTION_TIMEOUT_MS 5000
+
 socket_t create_socket(void) {
     // create an ipv4 socket
     socket_t socket_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -99,7 +101,7 @@ int connect_client_to_server(const socket_t socket_fd, const unsigned short serv
         }
 
         if (error != 0) {
-            log_error("Connection failed. %s\n", strerror(error));
+            log_error("Connecting to server failed. %s\n", strerror(error));
             socket_close(socket_fd);
             return EXIT_FAILURE;
         }

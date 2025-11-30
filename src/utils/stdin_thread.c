@@ -6,7 +6,6 @@
 
 #include "containers/text_message.h"
 #include "containers/thread_queue.h"
-#include "utils/logging.h"
 
 #include "utils/stdin_thread.h"
 
@@ -35,8 +34,6 @@ int stdin_thread_function(void* arg) {
             buffer[len-1] = '\0';
             len--;
         }
-
-        log_extra_info("Stdin message: %.*s (length %d)", len, buffer, len);
 
         text_message msg = {0};
         if (text_message_init(&msg) == EXIT_FAILURE) {

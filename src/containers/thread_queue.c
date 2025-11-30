@@ -67,23 +67,31 @@ text_message* thread_queue_pop(thread_queue* queue) {
 
     text_message* ref = &queue->messages[queue->head];
 
+    // allocate and copy contents
     text_message* msg = malloc(sizeof(text_message));
     if (msg == NULL) {
         log_error("Couldn't allocate queue popped message memory");
+
+        mtx_unlock(&queue->lock);
         return NULL;
     }
 
     if (text_message_init(msg) == EXIT_FAILURE) {
         free(msg);
+
+        mtx_unlock(&queue->lock);
         return NULL;
     }
     
     if (text_message_copy(msg, ref) == EXIT_FAILURE) {
         text_message_free(msg);
         free(msg);
+        
+        mtx_unlock(&queue->lock);
         return NULL;
     }
 
+    // free removed element
     queue->head = (queue->head + 1) % queue->capacity;
     text_message_free(ref);
 

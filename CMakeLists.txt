@@ -26,7 +26,6 @@ target_sources(socketchat
         src/networking/socket_commands.c
         src/networking/data_pipes.c
         
-        src/events/client_events.c
         src/events/server_events.c
         
         src/utils/logging.c

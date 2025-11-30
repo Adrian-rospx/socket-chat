@@ -3,8 +3,10 @@
 #include <string.h>
 #include <stdio.h>
 
+#include "containers/text_message.h"
 #include "networking/os_networking.h"
 #include "networking/socket_commands.h"
+#include "networking/data_pipes.h"
 
 #include "containers/poll_list.h"
 #include "containers/sockbuf_list.h"
@@ -25,12 +27,12 @@ int server_event_loop(poll_list* p_list, sockbuf_list* sbuf_list) {
 
     // check for socket errors or disconnects
     if (server_event & (POLLERR | POLLHUP | POLLNVAL)) {
-        log_error("socket error or disconnect detected. Disconnecting socket...");
+        log_error("Server socket error or disconnect detected. Disconnecting...");
         return 3;
     }
     // server recieve -> connect user
     if (server_event & POLLIN)
-        if (server_connect_event(p_list, sbuf_list) == EXIT_FAILURE)
+        if (server_connect_event_handler(p_list, sbuf_list) == EXIT_FAILURE)
             return EXIT_FAILURE;
 
     // loop through sockets
@@ -41,21 +43,28 @@ int server_event_loop(poll_list* p_list, sockbuf_list* sbuf_list) {
 
         // handle socket errors
         if (client_event & (POLLERR | POLLNVAL | POLLHUP)) {
-            poll_list_remove(p_list, fd);
             sockbuf_list_remove(sbuf_list, fd);
+            poll_list_remove(p_list, fd);
             
-            log_error("socket error or disconnect at fd #%d. Exiting...", fd);
+            log_error("Socket error or disconnect at fd = %d. Exiting...", fd);
             continue;
         }
 
         // client read -> receive data
         if (client_event & POLLIN) {
-            if (server_read_event(p_list, sbuf_list, fd) == EXIT_FAILURE)
-                continue;
+            text_message msg = {0};
+            text_message_init(&msg);
+
+            int status = read_event_handler(p_list, sbuf_list, &msg, fd);
+            if (status == EXIT_SUCCESS) {
+                pipe_message_to_all(sbuf_list, p_list, fd, &msg);
+            }
+
+            text_message_free(&msg);
         }
         // server write -> send message data
         if (client_event & POLLOUT)
-            if (server_write_event(sbuf_list, p_list, fd) == EXIT_FAILURE)
+            if (write_event_handler(sbuf_list, p_list, fd) == EXIT_FAILURE)
                 continue;
     }
 
