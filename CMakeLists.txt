@@ -29,6 +29,7 @@ target_sources(socketchat
         src/events/server_events.c
         
         src/utils/logging.c
+        src/utils/stdin_thread.c
 )
 target_include_directories(socketchat PRIVATE include)
 

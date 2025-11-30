@@ -4,6 +4,7 @@
 #include "containers/sockbuf_list.h"
 #include "containers/socket_buffer.h"
 #include "containers/text_message.h"
+#include "containers/poll_list.h"
 
 #include "networking/os_networking.h"
 
