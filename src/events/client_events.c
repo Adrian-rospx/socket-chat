@@ -70,7 +70,7 @@ int client_write_event(socket_buffer* sock_buf, poll_list* p_list) {
     if (sock_buf->outgoing_length == 0)
         return 2;
 
-    ssize_t bytes_sent = send(sock_buf->fd, sock_buf->outgoing_buffer,
+    ssize_t bytes_sent = send(sock_buf->fd, (char*)sock_buf->outgoing_buffer,
         sock_buf->outgoing_length, 0);
 
     if (bytes_sent == -1) {
@@ -92,9 +92,9 @@ int client_write_event(socket_buffer* sock_buf, poll_list* p_list) {
 }
 
 int client_read_event(socket_buffer* sock_buf) {
-    char data[RECV_BUFFER_SIZE];
+    uint8_t data[RECV_BUFFER_SIZE];
 
-    ssize_t bytes = recv(sock_buf->fd, data, sizeof(data) - 1, 0);
+    ssize_t bytes = recv(sock_buf->fd, (char*)data, sizeof(data) - 1, 0);
             
     if (bytes < 0) {
         log_network_error("Recv error");
@@ -108,7 +108,7 @@ int client_read_event(socket_buffer* sock_buf) {
     data[bytes] = '\0';
     log_extra_info("Recieved %ld bytes from server", bytes);
 
-    if (socket_buffer_append_incoming(sock_buf, (uint8_t*)data, bytes) == EXIT_FAILURE)
+    if (socket_buffer_append_incoming(sock_buf, data, bytes) == EXIT_FAILURE)
         return EXIT_FAILURE;
 
     // additionally, process it and print it to the screen

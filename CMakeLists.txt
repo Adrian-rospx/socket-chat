@@ -3,15 +3,15 @@ cmake_minimum_required(VERSION 3.23)
 set(CMAKE_C_STANDARD 17)
 
 project(
-    SocketChat 
-    VERSION 0.3
+    socket-chat 
+    VERSION 0.4
     LANGUAGES C
 )
 
-add_executable(SocketChat)
+add_executable(socketchat)
 
 # source code files
-target_sources(SocketChat
+target_sources(socketchat
     PRIVATE 
         src/main.c
         src/server.c
@@ -30,31 +30,31 @@ target_sources(SocketChat
         
         src/utils/logging.c
 )
-target_include_directories(SocketChat PRIVATE include)
+target_include_directories(socketchat PRIVATE include)
 
-target_compile_options(SocketChat PRIVATE
+target_compile_options(socketchat PRIVATE
     -ffile-prefix-map=${CMAKE_SOURCE_DIR}=.
     -ffile-prefix-map=${CMAKE_BINARY_DIR}=.
 )
 
 if (WIN32)
-    target_link_libraries(SocketChat PRIVATE ws2_32)
+    target_link_libraries(socketchat PRIVATE ws2_32)
 endif()
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     # debug errors
-    target_compile_options(SocketChat PRIVATE 
+    target_compile_options(socketchat PRIVATE 
         -Wall 
         -Wextra
         -pedantic
     )
     # sanitizer
     # for windows: clang requires the asan dll libraries! 
-    target_compile_options(SocketChat PRIVATE
+    target_compile_options(socketchat PRIVATE
         -fsanitize=address,undefined
         -fno-omit-frame-pointer
     )
-    target_link_options(SocketChat PRIVATE
+    target_link_options(socketchat PRIVATE
         -fsanitize=address,undefined
         -fno-omit-frame-pointer
     )

@@ -32,7 +32,7 @@ int pipe_incoming_to_message(socket_buffer* sock_buf, text_message* txt_msg) {
 
     if (sock_buf->has_length && sock_buf->incoming_length >= sock_buf->exp_msg_len) {
 
-        if (text_message_init(txt_msg, sock_buf->incoming_buffer, 
+        if (text_message_create(txt_msg, sock_buf->incoming_buffer, 
             sock_buf->exp_msg_len) == EXIT_FAILURE)
             return EXIT_FAILURE;
 

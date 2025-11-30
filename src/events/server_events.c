@@ -30,7 +30,7 @@ int server_connect_event(poll_list* p_list, sockbuf_list* sbuf_list) {
     poll_list_add(p_list, client_fd, POLLIN);
     sockbuf_list_append(sbuf_list, client_fd);
 
-    fprintf(stdout, "Client connected fd = %d\n", client_fd);
+    fprintf(stdout, "Client connected fd = %d\n", (int)client_fd);
 
     return EXIT_SUCCESS;
 }
@@ -47,7 +47,7 @@ int server_read_event(poll_list* p_list, sockbuf_list* sbuf_list, const socket_t
     
     // read data
     uint8_t data[RECV_BUFFER_SIZE];
-    ssize_t bytes_recieved = recv(fd, data, sizeof(data) - 1, 0);
+    ssize_t bytes_recieved = recv(fd, (char*)data, sizeof(data) - 1, 0);
     data[bytes_recieved] = '\0';
 
     log_extra_info("Bytes recieved: %ld", bytes_recieved);
@@ -57,7 +57,7 @@ int server_read_event(poll_list* p_list, sockbuf_list* sbuf_list, const socket_t
         if (bytes_recieved < 0) 
             log_error("Could not read from client");
 
-        fprintf(stdout, "Client disconnected fd = %d\n", fd);
+        fprintf(stdout, "Client disconnected fd = %d\n", (int)fd);
         
         poll_list_remove(p_list, fd);
         sockbuf_list_remove(sbuf_list, fd);
@@ -106,7 +106,7 @@ int server_write_event(sockbuf_list* sbuf_list, poll_list* p_list, const socket_
     log_event("Write event");
 
     // send as many bytes as possible
-    ssize_t bytes_sent = send(fd, sock_buf->outgoing_buffer,
+    ssize_t bytes_sent = send(fd, (char*)sock_buf->outgoing_buffer,
         sock_buf->outgoing_length, 0);
 
     if (bytes_sent == -1) {
