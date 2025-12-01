@@ -1,7 +1,6 @@
 #include <stdlib.h>
 #include <threads.h>
 
-#include "networking/data_pipes.h"
 #include "networking/os_networking.h"
 #include "networking/socket_commands.h"
 #include "networking/event_handlers.h"
@@ -9,7 +8,6 @@
 #include "containers/thread_queue.h"
 #include "containers/poll_list.h"
 #include "containers/sockbuf_list.h"
-#include "containers/text_message.h"
 
 #include "utils/logging.h"
 #include "utils/stdin_thread.h"
@@ -20,11 +18,9 @@
 
 int client_event_loop(client_loop_data* cl_d) {
     poll_list* p_list = &cl_d->p_list;
-    sockbuf_list* sbuf_l = &cl_d->sbuf_l;
-    thread_queue* stdin_queue = &cl_d->stdin_queue;
 
     // poll update
-    int ret = poll(p_list->fds, p_list->size, TIMEOUT_MS);
+    const int ret = poll(p_list->fds, p_list->size, TIMEOUT_MS);
 
     if (ret == -1) {
         log_network_error("Poll error");
@@ -35,30 +31,18 @@ int client_event_loop(client_loop_data* cl_d) {
         return EXIT_FAILURE;
     }
 
-    const socket_t server_fd = p_list->fds[0].fd;
-    const unsigned short server_event = p_list->fds[0].revents;
-
-    const socket_t notify_recv_fd = p_list->fds[1].fd;
     const unsigned short notify_event = p_list->fds[1].revents;
+    const unsigned short server_event = p_list->fds[0].revents;
     
-    socket_event_data sockev_d = {.fd = server_fd, .msg = {0}};
+    client_event_data event_data = {
+        .fd = p_list->fds[0].fd, 
+        .msg = {0},
+        .notifier_fd = p_list->fds[1].fd,
+    };
 
-    // stdin update
     if (notify_event & POLLIN) {
-        // clear wakeup signal
-        char buf[16];
-        recv(notify_recv_fd, buf, sizeof(buf), 0);
-
-        text_message* msg = thread_queue_pop(stdin_queue);
-
-        if (msg != NULL) {
-            log_event("Stdin event");
-            log_extra_info("Stdin message (length %d): %.*s", msg->length, msg->length, msg->buffer);
-    
-            pipe_message_to_outgoing(sbuf_l, p_list, server_fd, msg);
-    
-            text_message_free(msg);
-        }
+        event ev = {.type = EVENT_STDIN_READ, .data = &event_data};
+        on_stdin_read(&ev, cl_d);
     }
 
     // check for socket errors or disconnects
@@ -67,17 +51,13 @@ int client_event_loop(client_loop_data* cl_d) {
         return 3;
     }
 
-    // handle server messages
     if (server_event & POLLIN) {
-        event ev = {.type = EVENT_SOCKET_READ, .data = &sockev_d};
-
+        event ev = {.type = EVENT_SOCKET_READ, .data = &event_data};
         on_socket_read(&ev, cl_d);
     }
 
-    // handle writing to server
     if (server_event & POLLOUT) {
-        event ev = {.type = EVENT_SOCKET_WRITE, .data = &sockev_d};
-
+        event ev = {.type = EVENT_SOCKET_WRITE, .data = &event_data};
         on_socket_write(&ev, cl_d);
     }
 

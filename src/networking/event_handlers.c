@@ -10,6 +10,8 @@
 
 #include "networking/event_handlers.h"
 
+#define WAKEUP_BUFFER_SIZE 16
+
 int on_socket_read(event* ev, void* program_data) {
     socket_loop_data* state = program_data;
     socket_event_data* ev_d = ev->data;
@@ -48,12 +50,41 @@ int on_socket_read(event* ev, void* program_data) {
     return EXIT_SUCCESS;
 }
 
-int on_socket_write(event *ev, void *program_data) {
+int on_socket_write(event* ev, void* program_data) {
     socket_loop_data* state = program_data;
     socket_event_data* se_d = ev->data;
 
     if (pipe_outgoing_to_send(&state->sbuf_l, &state->p_list, se_d->fd) == EXIT_FAILURE)
         return EXIT_FAILURE;
+
+    return EXIT_SUCCESS;
+}
+
+int on_stdin_read(event* ev, void* program_data) {
+    client_loop_data* state = program_data;
+    client_event_data* se_d = ev->data;
+
+    // clear wakeup signal
+    char buf[WAKEUP_BUFFER_SIZE];
+    recv(se_d->notifier_fd, buf, sizeof(buf), 0);
+
+    text_message* msg = thread_queue_pop(&state->stdin_queue);
+
+    if (msg == NULL) {
+        return EXIT_FAILURE;
+    }
+
+    log_event("Stdin event");
+    log_extra_info("Stdin message (length %d): %.*s", msg->length, msg->length, msg->buffer);
+
+    int res = pipe_message_to_outgoing(&state->sbuf_l, &state->p_list, se_d->fd, msg);
+    
+    if (res == EXIT_FAILURE) {
+        text_message_free(msg);
+        return EXIT_FAILURE;
+    }
+
+    text_message_free(msg);
 
     return EXIT_SUCCESS;
 }

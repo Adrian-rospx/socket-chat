@@ -19,24 +19,35 @@ typedef struct {
     void*       data;
 } event;
 
+// event data
 typedef struct {
     socket_t        fd;
     text_message    msg;
 } socket_event_data;
 
 typedef struct {
-    sockbuf_list   sbuf_l;
-    poll_list      p_list;
+    socket_t        fd;
+    text_message    msg;
+    socket_t        notifier_fd;
+} client_event_data;
+
+// program data
+typedef struct {
+    sockbuf_list    sbuf_l;
+    poll_list       p_list;
 } socket_loop_data;
 
 typedef struct {
-    sockbuf_list   sbuf_l;
-    poll_list      p_list;
-    thread_queue   stdin_queue;
+    sockbuf_list    sbuf_l;
+    poll_list       p_list;
+    thread_queue    stdin_queue;
 } client_loop_data;
 
 int on_socket_read(event* ev, void* program_data);
 
 int on_socket_write(event* ev, void* program_data);
+
+/* Takes client_event_data and client_loop_data */
+int on_stdin_read(event* ev, void* program_data);
 
 #endif

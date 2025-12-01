@@ -3,10 +3,9 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "containers/text_message.h"
+#include "networking/event_handlers.h"
 #include "networking/os_networking.h"
 #include "networking/socket_commands.h"
-#include "networking/data_pipes.h"
 
 #include "containers/poll_list.h"
 #include "containers/sockbuf_list.h"
@@ -30,7 +29,10 @@ int server_connect_event_handler(poll_list* p_list, sockbuf_list* sbuf_list) {
     return EXIT_SUCCESS;
 }
 
-int server_event_loop(poll_list* p_list, sockbuf_list* sbuf_list) {
+int server_event_loop(socket_loop_data* sl_d) {
+    poll_list* p_list = &sl_d->p_list;
+    sockbuf_list* sbuf_l = &sl_d->sbuf_l;
+
     // poll indefinitely
     const int ret = poll(p_list->fds, p_list->size, -1);
 
@@ -38,6 +40,7 @@ int server_event_loop(poll_list* p_list, sockbuf_list* sbuf_list) {
         log_network_error("Poll failed");
         return 3;
     }
+
     const unsigned short server_event = p_list->fds[0].revents;
 
     // check for socket errors or disconnects
@@ -47,7 +50,7 @@ int server_event_loop(poll_list* p_list, sockbuf_list* sbuf_list) {
     }
     // server recieve -> connect user
     if (server_event & POLLIN)
-        if (server_connect_event_handler(p_list, sbuf_list) == EXIT_FAILURE)
+        if (server_connect_event_handler(p_list, sbuf_l) == EXIT_FAILURE)
             return EXIT_FAILURE;
 
     // loop through sockets
@@ -56,35 +59,29 @@ int server_event_loop(poll_list* p_list, sockbuf_list* sbuf_list) {
         const unsigned short client_event = p_list->fds[i].revents;
         const socket_t fd = p_list->fds[i].fd;
 
+        socket_event_data event_data = {
+            .fd = p_list->fds[i].fd,
+            .msg = {0}
+        };
+
         // handle socket errors
         if (client_event & (POLLERR | POLLNVAL | POLLHUP)) {
-            sockbuf_list_remove(sbuf_list, fd);
+            sockbuf_list_remove(sbuf_l, fd);
             poll_list_remove(p_list, fd);
             
             log_error("Socket error or disconnect at fd = %d. Disconnecting...", fd);
             return EXIT_FAILURE;
         }
 
-        // client read -> receive data
         if (client_event & POLLIN) {
-            text_message msg = {0};
-            text_message_init(&msg);
-
-            if (pipe_recieve_to_incoming(sbuf_list, fd) == EXIT_SUCCESS) {
-                socket_buffer* sock_buf = sockbuf_list_get(sbuf_list, fd); 
-        
-                // return text message
-                if (pipe_incoming_to_message(sock_buf, &msg) == EXIT_SUCCESS)
-                    pipe_message_to_all(sbuf_list, p_list, fd, &msg);
-            }
-
-            text_message_free(&msg);
+            event ev = {.type = EVENT_SOCKET_READ, .data = &event_data};
+            on_socket_read(&ev, sl_d);
         }
 
-        // server write -> send message data
-        if (client_event & POLLOUT)
-            if (pipe_outgoing_to_send(sbuf_list, p_list, fd) == EXIT_FAILURE)
-                continue;
+        if (client_event & POLLOUT) {
+            event ev = {.type = EVENT_SOCKET_WRITE, .data = &event_data};
+            on_socket_write(&ev, sl_d);
+        }
     }
 
     return EXIT_SUCCESS;
@@ -101,18 +98,18 @@ int run_server(const unsigned short port) {
     if (start_server_listener(socket_fd, port) == EXIT_FAILURE) 
         return EXIT_FAILURE;
 
-    // setup polling with server fd on index 0
-    poll_list p_list;
-    poll_list_init(&p_list);
-    poll_list_add(&p_list, socket_fd, POLLIN | POLLOUT);
+    socket_loop_data sl_d = {0};
 
-    // buffer list
-    sockbuf_list sbuf_list;
-    sockbuf_list_init(&sbuf_list);
+    // setup polling with server fd on index 0
+    poll_list_init(&sl_d.p_list);
+    poll_list_add(&sl_d.p_list, socket_fd, POLLIN | POLLOUT);
+
+    // setup buffer list
+    sockbuf_list_init(&sl_d.sbuf_l);
 
     // event loop implementation
     while (1) {
-        const int status = server_event_loop(&p_list, &sbuf_list);
+        const int status = server_event_loop(&sl_d);
 
         if (status == EXIT_FAILURE) 
             continue;
@@ -120,9 +117,8 @@ int run_server(const unsigned short port) {
             break;
     }
 
-    poll_list_free(&p_list);
-    sockbuf_list_free(&sbuf_list);
-    socket_close(socket_fd);
+    poll_list_free(&sl_d.p_list);
+    sockbuf_list_free(&sl_d.sbuf_l);
 
     winsock_cleanup();
 
