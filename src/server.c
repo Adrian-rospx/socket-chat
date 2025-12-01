@@ -10,10 +10,25 @@
 
 #include "containers/poll_list.h"
 #include "containers/sockbuf_list.h"
-#include "events/server_events.h"
 #include "utils/logging.h"
 
 #include "server.h"
+
+int server_connect_event_handler(poll_list* p_list, sockbuf_list* sbuf_list) {
+    log_event("Connect event");
+
+    socket_t client_fd = connect_server_to_client(p_list->fds[0].fd);
+    if (client_fd == SOCKET_INVALID)
+        return EXIT_FAILURE;
+
+    // add client data
+    poll_list_add(p_list, client_fd, POLLIN);
+    sockbuf_list_append(sbuf_list, client_fd);
+
+    fprintf(stdout, "Client connected fd = %d\n", (int)client_fd);
+
+    return EXIT_SUCCESS;
+}
 
 int server_event_loop(poll_list* p_list, sockbuf_list* sbuf_list) {
     // poll indefinitely
@@ -21,13 +36,13 @@ int server_event_loop(poll_list* p_list, sockbuf_list* sbuf_list) {
 
     if (ret < 0) {
         log_network_error("Poll failed");
-        return EXIT_FAILURE;
+        return 3;
     }
     const unsigned short server_event = p_list->fds[0].revents;
 
     // check for socket errors or disconnects
     if (server_event & (POLLERR | POLLHUP | POLLNVAL)) {
-        log_error("Server socket error or disconnect detected. Disconnecting...");
+        log_error("Server socket error or disconnect detected. Exiting...");
         return 3;
     }
     // server recieve -> connect user
@@ -46,8 +61,8 @@ int server_event_loop(poll_list* p_list, sockbuf_list* sbuf_list) {
             sockbuf_list_remove(sbuf_list, fd);
             poll_list_remove(p_list, fd);
             
-            log_error("Socket error or disconnect at fd = %d. Exiting...", fd);
-            continue;
+            log_error("Socket error or disconnect at fd = %d. Disconnecting...", fd);
+            return EXIT_FAILURE;
         }
 
         // client read -> receive data
@@ -65,7 +80,7 @@ int server_event_loop(poll_list* p_list, sockbuf_list* sbuf_list) {
 
             text_message_free(&msg);
         }
-        
+
         // server write -> send message data
         if (client_event & POLLOUT)
             if (pipe_outgoing_to_send(sbuf_list, p_list, fd) == EXIT_FAILURE)
@@ -78,6 +93,7 @@ int server_event_loop(poll_list* p_list, sockbuf_list* sbuf_list) {
 int run_server(const unsigned short port) {
     winsock_init();
 
+    // init
     socket_t socket_fd = create_socket();
     if (socket_fd == SOCKET_INVALID)
         return EXIT_FAILURE;
@@ -100,7 +116,7 @@ int run_server(const unsigned short port) {
 
         if (status == EXIT_FAILURE) 
             continue;
-        else if (status == 3)
+        if (status == 3)
             break;
     }
 

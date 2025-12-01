@@ -17,7 +17,7 @@
 int pipe_incoming_to_message(socket_buffer* sock_buf, text_message* txt_msg) {
     // process new data
     if (!sock_buf->has_length) {
-        if (sock_buf->incoming_length < 4)
+        if (sock_buf->incoming_length < sizeof(uint32_t))
             return 2; // not enough data
 
         // register new message length
@@ -86,7 +86,7 @@ int pipe_message_to_outgoing(sockbuf_list* sbuf_list, poll_list* p_list,
         sizeof(uint32_t));
     socket_buffer_queue_outgoing(sock_buf, msg_ptr, length);
 
-    log_extra_info("Message passing pipe (length: %ld): %.*s", 
+    log_extra_info("Message passing outgoing pipe (length %ld): %.*s", 
         length, (int)length, msg_ptr);
 
     free(msg_ptr);

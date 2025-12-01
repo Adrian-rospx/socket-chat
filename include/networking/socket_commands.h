@@ -18,6 +18,10 @@ int connect_client_to_server(const socket_t client_fd,
     const unsigned short server_port,
     const char* ip_address);
 
+/* Connect the server to the client on request */
+socket_t connect_server_to_client(socket_t server_fd);
+
+/* Setup UDP loopback notifications between main thread and stdin thread */
 int setup_notifier_sockets(socket_t* recv_fd, socket_t* send_fd);
 
 #endif

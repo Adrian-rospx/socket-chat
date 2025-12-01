@@ -46,7 +46,7 @@ int client_event_loop(sockbuf_list* sbuf_l, poll_list* p_list, thread_queue* std
 
         if (msg != NULL) {
             log_event("Stdin event");
-            log_extra_info("Stdin message: %.*s (length: %d)", msg->length, msg->buffer, msg->length);
+            log_extra_info("Stdin message (length %d): %.*s", msg->length, msg->length, msg->buffer);
     
             pipe_message_to_outgoing(sbuf_l, p_list, server_fd, msg);
     

@@ -112,6 +112,19 @@ int connect_client_to_server(const socket_t socket_fd, const unsigned short serv
     return EXIT_SUCCESS;
 }
 
+socket_t connect_server_to_client(socket_t server_fd) {
+    sockaddr_in client_addr = {0};
+    socklen_t client_len = sizeof(client_addr);
+
+    socket_t client_fd = accept(server_fd, (sockaddr*)&client_addr, &client_len);
+    if (client_fd < 0) {
+        log_network_error("Accept failed!");
+        return SOCKET_INVALID;
+    }
+
+    return client_fd;
+}
+
 int setup_notifier_sockets(socket_t* recv_fd, socket_t* send_fd) {
     *recv_fd = socket(AF_INET, SOCK_DGRAM, 0);
     *send_fd = socket(AF_INET, SOCK_DGRAM, 0);
