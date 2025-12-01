@@ -105,7 +105,7 @@ int pipe_message_to_outgoing(sockbuf_list* sbuf_list, poll_list* p_list,
 }
 
 int pipe_message_to_all(sockbuf_list* sbuf_list, poll_list* p_list, 
-    socket_t fd, text_message* txt_msg) {
+            text_message* txt_msg) {
 
     for (size_t i = 0; i < sbuf_list->size; i++) {
         if (pipe_message_to_outgoing(sbuf_list, p_list, 
@@ -123,8 +123,6 @@ int pipe_recieve_to_incoming(sockbuf_list* sbuf_list, const socket_t fd) {
         log_error("Can't find socket fd for reading");
         return EXIT_FAILURE;
     }
-    
-    log_event("Read event");
     
     // read data
     uint8_t data[RECV_BUFFER_SIZE];

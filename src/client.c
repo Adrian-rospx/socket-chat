@@ -47,7 +47,8 @@ int client_event_loop(client_loop_data* cl_d) {
 
     // check for socket errors or disconnects
     if (server_event & (POLLERR | POLLHUP | POLLNVAL)) {
-        log_error("Socket error or disconnect detected. Exiting...");
+        event ev = {.type = EVENT_SOCKET_DISCONNECT, .data = &event_data};
+        on_socket_disconnect(&ev, cl_d);
         return 3;
     }
 

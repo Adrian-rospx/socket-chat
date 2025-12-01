@@ -13,25 +13,8 @@
 
 #include "server.h"
 
-int server_connect_event_handler(poll_list* p_list, sockbuf_list* sbuf_list) {
-    log_event("Connect event");
-
-    socket_t client_fd = connect_server_to_client(p_list->fds[0].fd);
-    if (client_fd == SOCKET_INVALID)
-        return EXIT_FAILURE;
-
-    // add client data
-    poll_list_add(p_list, client_fd, POLLIN);
-    sockbuf_list_append(sbuf_list, client_fd);
-
-    fprintf(stdout, "Client connected fd = %d\n", (int)client_fd);
-
-    return EXIT_SUCCESS;
-}
-
 int server_event_loop(socket_loop_data* sl_d) {
     poll_list* p_list = &sl_d->p_list;
-    sockbuf_list* sbuf_l = &sl_d->sbuf_l;
 
     // poll indefinitely
     const int ret = poll(p_list->fds, p_list->size, -1);
@@ -42,35 +25,32 @@ int server_event_loop(socket_loop_data* sl_d) {
     }
 
     const unsigned short server_event = p_list->fds[0].revents;
+    socket_event_data ev_d = {.fd = p_list->fds[0].fd, .msg = {0}};
 
     // check for socket errors or disconnects
     if (server_event & (POLLERR | POLLHUP | POLLNVAL)) {
         log_error("Server socket error or disconnect detected. Exiting...");
         return 3;
     }
-    // server recieve -> connect user
-    if (server_event & POLLIN)
-        if (server_connect_event_handler(p_list, sbuf_l) == EXIT_FAILURE)
-            return EXIT_FAILURE;
+
+    if (server_event & POLLIN) {
+        event ev = {.type = EVENT_SOCKET_CONNECT, .data = &ev_d};
+        on_server_connect(&ev, sl_d);
+    }
 
     // loop through sockets
     for (size_t i = 1; i < p_list->size; i++) {
 
         const unsigned short client_event = p_list->fds[i].revents;
-        const socket_t fd = p_list->fds[i].fd;
-
         socket_event_data event_data = {
             .fd = p_list->fds[i].fd,
             .msg = {0}
         };
 
-        // handle socket errors
         if (client_event & (POLLERR | POLLNVAL | POLLHUP)) {
-            sockbuf_list_remove(sbuf_l, fd);
-            poll_list_remove(p_list, fd);
-            
-            log_error("Socket error or disconnect at fd = %d. Disconnecting...", fd);
-            return EXIT_FAILURE;
+            event ev = {.type = EVENT_SOCKET_DISCONNECT, .data = &event_data};
+            on_socket_disconnect(&ev, sl_d);
+            break;
         }
 
         if (client_event & POLLIN) {

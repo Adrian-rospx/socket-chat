@@ -11,6 +11,8 @@
 typedef enum {
     EVENT_SOCKET_READ,
     EVENT_SOCKET_WRITE,
+    EVENT_SOCKET_DISCONNECT,
+    EVENT_SOCKET_CONNECT,
     EVENT_STDIN_READ,
 } event_type;
 
@@ -46,6 +48,10 @@ typedef struct {
 int on_socket_read(event* ev, void* program_data);
 
 int on_socket_write(event* ev, void* program_data);
+
+int on_socket_disconnect(event* ev, void* program_data);
+
+int on_server_connect(event* ev, void* program_data);
 
 /* Takes client_event_data and client_loop_data */
 int on_stdin_read(event* ev, void* program_data);

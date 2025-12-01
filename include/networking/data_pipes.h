@@ -26,13 +26,13 @@ int pipe_message_to_stdout(text_message* txt_msg);
     Activates the POLLOUT flag 
 */
 int pipe_message_to_outgoing(sockbuf_list* sbuf_list, poll_list* p_list, 
-    socket_t fd, text_message* txt_msg);
+            socket_t fd, text_message* txt_msg);
 
 /*  Sends the message to all socket buffers,
     effecitvely broadcasting it to all users.
 */
 int pipe_message_to_all(sockbuf_list* sbuf_list, poll_list* p_list, 
-    socket_t fd, text_message* txt_msg);
+            text_message* txt_msg);
 
 /*  Read from client into the incoming buffer. Exit codes:
 
