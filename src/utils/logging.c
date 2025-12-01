@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdarg.h>
-#include <vadefs.h>
 
 #include "networking/os_networking.h"
 

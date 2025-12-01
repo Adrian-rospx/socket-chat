@@ -1,4 +1,3 @@
-#include <WinSock2.h>
 #include <stdlib.h>
 #include <threads.h>
 
@@ -10,8 +9,6 @@
 #include "containers/poll_list.h"
 #include "containers/sockbuf_list.h"
 #include "containers/text_message.h"
-
-#include "events/server_events.h"
 
 #include "utils/logging.h"
 #include "utils/stdin_thread.h"
@@ -35,6 +32,7 @@ int client_event_loop(sockbuf_list* sbuf_l, poll_list* p_list, thread_queue* std
 
     const socket_t server_fd = p_list->fds[0].fd;
     const unsigned short server_event = p_list->fds[0].revents;
+
     const socket_t notify_recv_fd = p_list->fds[1].fd;
     const unsigned short notify_event = p_list->fds[1].revents;
 
@@ -67,16 +65,20 @@ int client_event_loop(sockbuf_list* sbuf_l, poll_list* p_list, thread_queue* std
         text_message msg;
         text_message_init(&msg);
 
-        if (read_event_handler(p_list, sbuf_l, &msg, server_fd) == EXIT_SUCCESS) {
-            pipe_message_to_stdout(&msg);
-        }
+        if (pipe_recieve_to_incoming(p_list, sbuf_l, &msg, server_fd) == EXIT_SUCCESS) {
+            socket_buffer* sock_buf = sockbuf_list_get(sbuf_l, server_fd); 
         
+            // return text message
+            if (pipe_incoming_to_message(sock_buf, &msg) == EXIT_SUCCESS)
+                pipe_message_to_stdout(&msg);
+        }
+
         text_message_free(&msg);
     }
 
     // handle writing to server
     if (server_event & POLLOUT)
-        return write_event_handler(sbuf_l, p_list, server_fd);
+        return pipe_outgoing_to_send(sbuf_l, p_list, server_fd);
 
     return EXIT_SUCCESS;
 }

@@ -12,6 +12,8 @@
 #include "containers/text_message.h"
 #include "utils/logging.h"
 
+#define RECV_BUFFER_SIZE 1024
+
 int pipe_incoming_to_message(socket_buffer* sock_buf, text_message* txt_msg) {
     // process new data
     if (!sock_buf->has_length) {
@@ -109,6 +111,85 @@ int pipe_message_to_all(sockbuf_list* sbuf_list, poll_list* p_list,
         if (pipe_message_to_outgoing(sbuf_list, p_list, 
             sbuf_list->bufs[i].fd, txt_msg) == EXIT_FAILURE)
             return EXIT_FAILURE;
+    }
+
+    return EXIT_SUCCESS;
+}
+
+int pipe_recieve_to_incoming(poll_list* p_list, sockbuf_list* sbuf_list, 
+            text_message* msg, const socket_t fd) {
+    pollfd* pfd = poll_list_get(p_list, fd);
+    socket_buffer* sock_buf = sockbuf_list_get(sbuf_list, fd);
+    
+    if (sock_buf == NULL) {
+        log_error("Can't find socket fd for reading");
+        return EXIT_FAILURE;
+    }
+    
+    log_event("Read event");
+    
+    // read data
+    uint8_t data[RECV_BUFFER_SIZE];
+    ssize_t bytes_recieved = recv(fd, (char*)data, sizeof(data) - 1, 0);
+    data[bytes_recieved] = '\0';
+
+    log_extra_info("Bytes recieved: %ld", bytes_recieved);
+    
+    if (bytes_recieved <= 0) {
+        // handle disconnection or error
+        if (bytes_recieved < 0) 
+            log_error("Could not read from client");
+
+        fprintf(stdout, "Server/client disconnected fd = %d\n", (int)fd);
+        
+        poll_list_remove(p_list, fd);
+        sockbuf_list_remove(sbuf_list, fd);
+
+        return EXIT_FAILURE; // exit
+    }
+    
+    // add bytes to incoming
+    if (socket_buffer_append_incoming(sock_buf,
+                (uint8_t*)data, 
+                bytes_recieved) == EXIT_FAILURE)
+        return EXIT_FAILURE;
+
+    return EXIT_SUCCESS;
+}
+
+int pipe_outgoing_to_send(sockbuf_list* sbuf_list, poll_list* p_list, const socket_t fd) {
+    socket_buffer* sock_buf = sockbuf_list_get(sbuf_list, fd);
+    pollfd* pfd = poll_list_get(p_list, fd);
+
+    if (sock_buf == NULL || pfd == NULL) {
+        log_error("File descriptor not found");
+        return EXIT_FAILURE;
+    }
+
+    if (sock_buf->outgoing_length == 0)
+        return 2;
+
+    log_event("Write event");
+
+    // send as many bytes as possible
+    ssize_t bytes_sent = send(fd, (char*)sock_buf->outgoing_buffer,
+        sock_buf->outgoing_length, 0);
+
+    if (bytes_sent == -1) {
+        log_network_error("Send error");
+        return EXIT_FAILURE;
+    }
+    log_extra_info("Bytes written: %ld", bytes_sent);
+
+    // remove sent bytes
+    if (socket_buffer_deque_outgoing(sock_buf, bytes_sent))
+        return EXIT_FAILURE;
+
+    // remove the pollout flag when empty
+    if (sock_buf->outgoing_length == 0) {
+        pfd->events &= ~POLLOUT;
+
+        log_extra_info("POLLOUT reset");
     }
 
     return EXIT_SUCCESS;

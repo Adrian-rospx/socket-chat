@@ -8,13 +8,17 @@
 
 #include "networking/os_networking.h"
 
-/*  Process incoming buffer data to create
-    complete messages
+/*  Process incoming buffer data to create complete messages. Exit codes:
+
+    EXIT_SUCCESS - message returned competely
+
+    2 - incomplete data
+
+    EXIT_FAILURE - error
 */
 int pipe_incoming_to_message(socket_buffer* sock_buf, text_message* txt_msg);
 
 /*  Write message to screen */
-
 int pipe_message_to_stdout(text_message* txt_msg);
 
 /*  Send the message to the outgoing buffer of the specified fd
@@ -29,5 +33,21 @@ int pipe_message_to_outgoing(sockbuf_list* sbuf_list, poll_list* p_list,
 */
 int pipe_message_to_all(sockbuf_list* sbuf_list, poll_list* p_list, 
     socket_t fd, text_message* txt_msg);
+
+/*  Read from client into the incoming buffer. Exit codes:
+
+    EXIT_SUCCESS - data added successfully
+
+    EXIT_FAILURE - error
+*/
+int pipe_recieve_to_incoming(poll_list* p_list, sockbuf_list* sbuf_list, 
+            text_message* msg, const socket_t fd);
+
+/*  Write outgoing buffer contents 
+
+    Resets POLLOUT flag when done
+*/
+int pipe_outgoing_to_send(sockbuf_list* sbuf_list, poll_list* p_list, 
+            const socket_t fd);
 
 #endif

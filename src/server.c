@@ -55,16 +55,20 @@ int server_event_loop(poll_list* p_list, sockbuf_list* sbuf_list) {
             text_message msg = {0};
             text_message_init(&msg);
 
-            int status = read_event_handler(p_list, sbuf_list, &msg, fd);
-            if (status == EXIT_SUCCESS) {
-                pipe_message_to_all(sbuf_list, p_list, fd, &msg);
+            if (pipe_recieve_to_incoming(p_list, sbuf_list, &msg, fd) == EXIT_SUCCESS) {
+                socket_buffer* sock_buf = sockbuf_list_get(sbuf_list, fd); 
+        
+                // return text message
+                if (pipe_incoming_to_message(sock_buf, &msg) == EXIT_SUCCESS)
+                    pipe_message_to_all(sbuf_list, p_list, fd, &msg);
             }
 
             text_message_free(&msg);
         }
+        
         // server write -> send message data
         if (client_event & POLLOUT)
-            if (write_event_handler(sbuf_list, p_list, fd) == EXIT_FAILURE)
+            if (pipe_outgoing_to_send(sbuf_list, p_list, fd) == EXIT_FAILURE)
                 continue;
     }
 
