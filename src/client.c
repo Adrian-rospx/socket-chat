@@ -1,3 +1,4 @@
+#include <WinSock2.h>
 #include <stdlib.h>
 #include <threads.h>
 
@@ -20,25 +21,8 @@
 #define TIMEOUT_MS 30000
 
 int client_event_loop(sockbuf_list* sbuf_l, poll_list* p_list, thread_queue* stdin_queue) {
-    const socket_t server_fd = p_list->fds[0].fd;
-
-    // stdin update
-    if (!thread_queue_is_empty(stdin_queue)) {
-        text_message* msg = thread_queue_pop(stdin_queue);
-        
-        if (msg != NULL) {
-            log_event("Stdin event");
-            log_extra_info("Stdin message: %.*s (length: %d)", msg->length, msg->buffer, msg->length);
-    
-            pipe_message_to_outgoing(sbuf_l, p_list, server_fd, msg);
-    
-            text_message_free(msg);
-        }
-
-    }
-
     // poll update
-    int ret = poll(p_list->fds, 1, TIMEOUT_MS);
+    int ret = poll(p_list->fds, p_list->size, TIMEOUT_MS);
 
     if (ret == -1) {
         log_network_error("Poll error");
@@ -49,19 +33,34 @@ int client_event_loop(sockbuf_list* sbuf_l, poll_list* p_list, thread_queue* std
         return EXIT_FAILURE;
     }
 
-    // handling
+    const socket_t server_fd = p_list->fds[0].fd;
     const unsigned short server_event = p_list->fds[0].revents;
+    const socket_t notify_recv_fd = p_list->fds[1].fd;
+    const unsigned short notify_event = p_list->fds[1].revents;
 
+    // stdin update
+    if (notify_event & POLLIN) {
+        // clear wakeup signal
+        char buf[16];
+        recv(notify_recv_fd, buf, sizeof(buf), 0);
+
+        text_message* msg = thread_queue_pop(stdin_queue);
+
+        if (msg != NULL) {
+            log_event("Stdin event");
+            log_extra_info("Stdin message: %.*s (length: %d)", msg->length, msg->buffer, msg->length);
+    
+            pipe_message_to_outgoing(sbuf_l, p_list, server_fd, msg);
+    
+            text_message_free(msg);
+        }
+    }
 
     // check for socket errors or disconnects
     if (server_event & (POLLERR | POLLHUP | POLLNVAL)) {
         log_error("Socket error or disconnect detected. Exiting...");
         return 3;
     }
-
-    // handle user input
-    // if (local_client_event & POLLIN)
-    //     return client_stdin_event(sbuf_l, p_list, server_fd);
 
     // handle server messages
     if (server_event & POLLIN) {
@@ -109,11 +108,25 @@ int run_client (const unsigned short server_port, const char* ip_address) {
 
     sockbuf_list_append(&sbuf_list, server_fd);
 
+    // setup notification sockets
+    socket_t notify_recv_fd = 0;
+    socket_t notify_send_fd = 0;    
+    if (setup_notifier_sockets(&notify_recv_fd, &notify_send_fd)) {
+        sockbuf_list_free(&sbuf_list);
+        poll_list_free(&p_list);
+        return EXIT_FAILURE;
+    }
+
+    poll_list_add(&p_list, notify_recv_fd, POLLIN);
+
     // setup stdin thread
     thread_queue stdin_queue;
     thread_queue_init(&stdin_queue);
 
-    stdin_thread_args args = {.queue = &stdin_queue};
+    stdin_thread_args args = {
+        .queue = &stdin_queue, 
+        .notify_send_fd = notify_send_fd
+    };
 
     thrd_t stdin_thread;
     thrd_create(&stdin_thread, stdin_thread_function, &args);

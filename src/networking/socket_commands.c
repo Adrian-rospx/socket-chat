@@ -111,3 +111,32 @@ int connect_client_to_server(const socket_t socket_fd, const unsigned short serv
 
     return EXIT_SUCCESS;
 }
+
+int setup_notifier_sockets(socket_t* recv_fd, socket_t* send_fd) {
+    *recv_fd = socket(AF_INET, SOCK_DGRAM, 0);
+    *send_fd = socket(AF_INET, SOCK_DGRAM, 0);
+
+    sockaddr_in addr = {0};
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK); // 127.0.0.1
+    addr.sin_port = 0; // auto-port
+
+    int bind_res = bind(*recv_fd, (sockaddr *)&addr, sizeof(addr));
+    if (bind_res < 0) {
+        log_network_error("Notifer recv bind failed");
+        return EXIT_FAILURE;
+    }
+
+    // get the chosen port
+    socklen_t len = sizeof(addr);
+    getsockname(*recv_fd, (struct sockaddr *)&addr, &len);
+
+    // connect the sender socket to the receiver
+    int conn_res = connect(*send_fd, (struct sockaddr *)&addr, sizeof(addr));
+    if (conn_res < 0) {
+        log_network_error("Notifier connection failed");
+        return EXIT_FAILURE;
+    }
+    
+    return EXIT_SUCCESS;
+}

@@ -1,3 +1,4 @@
+#include <WinSock2.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -6,6 +7,7 @@
 
 #include "containers/text_message.h"
 #include "containers/thread_queue.h"
+#include "networking/os_networking.h"
 
 #include "utils/stdin_thread.h"
 
@@ -16,6 +18,7 @@ int stdin_thread_function(void* arg) {
 
     // obtain queue from arg
     thread_queue* queue = args->queue;
+    socket_t notify_send_fd = args->notify_send_fd;
 
     char buffer[STDIN_BUFFER_SIZE];
 
@@ -23,16 +26,13 @@ int stdin_thread_function(void* arg) {
         if (fgets(buffer, STDIN_BUFFER_SIZE-1, stdin) == NULL)
             break;
 
+        buffer[strcspn(buffer, "\n\r")] = 0;
+
         // strip newline
         size_t len = strlen(buffer);
 
-        if (len <= 1) {
+        if (len == 0) {
             continue;
-        }
-
-        if (len && buffer[len-1] == '\n') {
-            buffer[len-1] = '\0';
-            len--;
         }
 
         text_message msg = {0};
@@ -49,6 +49,9 @@ int stdin_thread_function(void* arg) {
             text_message_free(&msg);
             continue;
         }
+
+        // notify main thread
+        send(notify_send_fd, "x", 1, 0);
         
         text_message_free(&msg);
     }
