@@ -4,6 +4,7 @@
 #include "networking/data_pipes.h"
 #include "networking/os_networking.h"
 #include "networking/socket_commands.h"
+#include "networking/event_handlers.h"
 
 #include "containers/thread_queue.h"
 #include "containers/poll_list.h"
@@ -17,7 +18,11 @@
 
 #define TIMEOUT_MS 30000
 
-int client_event_loop(sockbuf_list* sbuf_l, poll_list* p_list, thread_queue* stdin_queue) {
+int client_event_loop(client_loop_data* cl_d) {
+    poll_list* p_list = &cl_d->p_list;
+    sockbuf_list* sbuf_l = &cl_d->sbuf_l;
+    thread_queue* stdin_queue = &cl_d->stdin_queue;
+
     // poll update
     int ret = poll(p_list->fds, p_list->size, TIMEOUT_MS);
 
@@ -35,6 +40,8 @@ int client_event_loop(sockbuf_list* sbuf_l, poll_list* p_list, thread_queue* std
 
     const socket_t notify_recv_fd = p_list->fds[1].fd;
     const unsigned short notify_event = p_list->fds[1].revents;
+    
+    socket_event_data sockev_d = {.fd = server_fd, .msg = {0}};
 
     // stdin update
     if (notify_event & POLLIN) {
@@ -62,18 +69,9 @@ int client_event_loop(sockbuf_list* sbuf_l, poll_list* p_list, thread_queue* std
 
     // handle server messages
     if (server_event & POLLIN) {
-        text_message msg;
-        text_message_init(&msg);
+        event ev = {.type = EVENT_SOCKET_READ, .data = &sockev_d};
 
-        if (pipe_recieve_to_incoming(p_list, sbuf_l, &msg, server_fd) == EXIT_SUCCESS) {
-            socket_buffer* sock_buf = sockbuf_list_get(sbuf_l, server_fd); 
-        
-            // return text message
-            if (pipe_incoming_to_message(sock_buf, &msg) == EXIT_SUCCESS)
-                pipe_message_to_stdout(&msg);
-        }
-
-        text_message_free(&msg);
+        on_client_read(&ev, cl_d);
     }
 
     // handle writing to server
@@ -94,39 +92,38 @@ int run_client (const unsigned short server_port, const char* ip_address) {
     if (connect_client_to_server(server_fd, server_port, ip_address) == -1)
         return EXIT_FAILURE;
 
+    client_loop_data cl_d = {0};
+
     // setup polling
-    poll_list p_list;
-    if (poll_list_init(&p_list) == EXIT_FAILURE)
+    if (poll_list_init(&cl_d.p_list) == EXIT_FAILURE)
         return EXIT_FAILURE;
 
-    poll_list_add(&p_list, server_fd, POLLIN | POLLOUT);
+    poll_list_add(&cl_d.p_list, server_fd, POLLIN | POLLOUT);
 
     // setup socket buffer
-    sockbuf_list sbuf_list;
-    if (sockbuf_list_init(&sbuf_list) == EXIT_FAILURE) {
-        poll_list_free(&p_list);
+    if (sockbuf_list_init(&cl_d.sbuf_l) == EXIT_FAILURE) {
+        poll_list_free(&cl_d.p_list);
         return EXIT_FAILURE;
     }
 
-    sockbuf_list_append(&sbuf_list, server_fd);
+    sockbuf_list_append(&cl_d.sbuf_l, server_fd);
 
     // setup notification sockets
     socket_t notify_recv_fd = 0;
     socket_t notify_send_fd = 0;    
     if (setup_notifier_sockets(&notify_recv_fd, &notify_send_fd)) {
-        sockbuf_list_free(&sbuf_list);
-        poll_list_free(&p_list);
+        sockbuf_list_free(&cl_d.sbuf_l);
+        poll_list_free(&cl_d.p_list);
         return EXIT_FAILURE;
     }
 
-    poll_list_add(&p_list, notify_recv_fd, POLLIN);
+    poll_list_add(&cl_d.p_list, notify_recv_fd, POLLIN);
 
     // setup stdin thread
-    thread_queue stdin_queue;
-    thread_queue_init(&stdin_queue);
+    thread_queue_init(&cl_d.stdin_queue);
 
     stdin_thread_args args = {
-        .queue = &stdin_queue, 
+        .queue = &cl_d.stdin_queue, 
         .notify_send_fd = notify_send_fd
     };
 
@@ -134,7 +131,7 @@ int run_client (const unsigned short server_port, const char* ip_address) {
     thrd_create(&stdin_thread, stdin_thread_function, &args);
 
     while (1) {
-        const int status = client_event_loop(&sbuf_list, &p_list, &stdin_queue);
+        const int status = client_event_loop(&cl_d);
 
         if (status == 3) // exit
             break;
@@ -143,8 +140,8 @@ int run_client (const unsigned short server_port, const char* ip_address) {
     }
 
     // cleanup
-    sockbuf_list_free(&sbuf_list);
-    poll_list_free(&p_list);
+    sockbuf_list_free(&cl_d.sbuf_l);
+    poll_list_free(&cl_d.p_list);
 
     winsock_cleanup();
 

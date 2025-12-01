@@ -38,10 +38,11 @@ int pipe_message_to_all(sockbuf_list* sbuf_list, poll_list* p_list,
 
     EXIT_SUCCESS - data added successfully
 
+    4 - exit or disconnect
+
     EXIT_FAILURE - error
 */
-int pipe_recieve_to_incoming(poll_list* p_list, sockbuf_list* sbuf_list, 
-            text_message* msg, const socket_t fd);
+int pipe_recieve_to_incoming(sockbuf_list* sbuf_list, const socket_t fd);
 
 /*  Write outgoing buffer contents 
 

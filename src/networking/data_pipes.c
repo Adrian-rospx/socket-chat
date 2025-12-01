@@ -116,9 +116,7 @@ int pipe_message_to_all(sockbuf_list* sbuf_list, poll_list* p_list,
     return EXIT_SUCCESS;
 }
 
-int pipe_recieve_to_incoming(poll_list* p_list, sockbuf_list* sbuf_list, 
-            text_message* msg, const socket_t fd) {
-    pollfd* pfd = poll_list_get(p_list, fd);
+int pipe_recieve_to_incoming(sockbuf_list* sbuf_list, const socket_t fd) {
     socket_buffer* sock_buf = sockbuf_list_get(sbuf_list, fd);
     
     if (sock_buf == NULL) {
@@ -136,16 +134,9 @@ int pipe_recieve_to_incoming(poll_list* p_list, sockbuf_list* sbuf_list,
     log_extra_info("Bytes recieved: %ld", bytes_recieved);
     
     if (bytes_recieved <= 0) {
-        // handle disconnection or error
         if (bytes_recieved < 0) 
             log_error("Could not read from client");
-
-        fprintf(stdout, "Server/client disconnected fd = %d\n", (int)fd);
-        
-        poll_list_remove(p_list, fd);
-        sockbuf_list_remove(sbuf_list, fd);
-
-        return EXIT_FAILURE; // exit
+        return 4;
     }
     
     // add bytes to incoming

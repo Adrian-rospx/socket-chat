@@ -70,7 +70,7 @@ int server_event_loop(poll_list* p_list, sockbuf_list* sbuf_list) {
             text_message msg = {0};
             text_message_init(&msg);
 
-            if (pipe_recieve_to_incoming(p_list, sbuf_list, &msg, fd) == EXIT_SUCCESS) {
+            if (pipe_recieve_to_incoming(sbuf_list, fd) == EXIT_SUCCESS) {
                 socket_buffer* sock_buf = sockbuf_list_get(sbuf_list, fd); 
         
                 // return text message
