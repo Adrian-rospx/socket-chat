@@ -71,12 +71,15 @@ int client_event_loop(client_loop_data* cl_d) {
     if (server_event & POLLIN) {
         event ev = {.type = EVENT_SOCKET_READ, .data = &sockev_d};
 
-        on_client_read(&ev, cl_d);
+        on_socket_read(&ev, cl_d);
     }
 
     // handle writing to server
-    if (server_event & POLLOUT)
-        return pipe_outgoing_to_send(sbuf_l, p_list, server_fd);
+    if (server_event & POLLOUT) {
+        event ev = {.type = EVENT_SOCKET_WRITE, .data = &sockev_d};
+
+        on_socket_write(&ev, cl_d);
+    }
 
     return EXIT_SUCCESS;
 }

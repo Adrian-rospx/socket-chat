@@ -5,6 +5,7 @@
 #include "containers/sockbuf_list.h"
 #include "containers/text_message.h"
 #include "containers/thread_queue.h"
+
 #include "networking/os_networking.h"
 
 typedef enum {
@@ -26,9 +27,16 @@ typedef struct {
 typedef struct {
     sockbuf_list   sbuf_l;
     poll_list      p_list;
+} socket_loop_data;
+
+typedef struct {
+    sockbuf_list   sbuf_l;
+    poll_list      p_list;
     thread_queue   stdin_queue;
 } client_loop_data;
 
-int on_client_read(event* ev, void* connection_data);
+int on_socket_read(event* ev, void* program_data);
+
+int on_socket_write(event* ev, void* program_data);
 
 #endif

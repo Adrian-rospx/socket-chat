@@ -4,13 +4,14 @@
 #include "containers/poll_list.h"
 #include "containers/sockbuf_list.h"
 #include "containers/text_message.h"
+
 #include "networking/data_pipes.h"
 #include "networking/os_networking.h"
 
 #include "networking/event_handlers.h"
 
-int on_client_read(event* ev, void* connection_data) {
-    client_loop_data* state = connection_data;
+int on_socket_read(event* ev, void* program_data) {
+    socket_loop_data* state = program_data;
     socket_event_data* ev_d = ev->data;
     
     socket_t fd = ev_d->fd;
@@ -31,7 +32,7 @@ int on_client_read(event* ev, void* connection_data) {
         sockbuf_list_remove(&state->sbuf_l, fd);
         poll_list_remove(&state->p_list, fd);
 
-        return EXIT_FAILURE; // exit
+        return 4; // exit
     }
 
     // return text message
@@ -43,6 +44,16 @@ int on_client_read(event* ev, void* connection_data) {
     pipe_message_to_stdout(&ev_d->msg);
 
     text_message_free(&ev_d->msg);
+
+    return EXIT_SUCCESS;
+}
+
+int on_socket_write(event *ev, void *program_data) {
+    socket_loop_data* state = program_data;
+    socket_event_data* se_d = ev->data;
+
+    if (pipe_outgoing_to_send(&state->sbuf_l, &state->p_list, se_d->fd) == EXIT_FAILURE)
+        return EXIT_FAILURE;
 
     return EXIT_SUCCESS;
 }
